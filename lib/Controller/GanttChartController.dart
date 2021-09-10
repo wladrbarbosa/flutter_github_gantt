@@ -82,31 +82,32 @@ class GanttChartController extends ChangeNotifier {
     String encodedUrl = Uri.encodeFull(url);
     
     if (await canLaunch(encodedUrl))
-      await launch(encodedUrl);
+      await launch(encodedUrl, forceWebView: true, enableJavaScript: true);
     
     return;
   }
 
   Future<void> onIssueRightButton(BuildContext context, PointerDownEvent event, Issue issue) async {
     // Check if right mouse button clicked
-    if (event.kind == PointerDeviceKind.mouse &&
-        event.buttons == kSecondaryMouseButton) {
-      final overlay =
-          Overlay.of(context)!.context.findRenderObject() as RenderBox;
-      final menuItem = await showMenu<int>(
-          context: context,
-          items: [
-            PopupMenuItem(child: Text('Editar tarefa #${issue.number}'), value: 1),
-          ],
-          position: RelativeRect.fromSize(
-              event.position & Size(48.0, 48.0), overlay.size));
-      // Check if menu item clicked
-      switch (menuItem) {
-        case 1:
-          launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}");
-        break;
-        default:
-      }
+    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+      RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
+      showMenu<int>(
+        context: context,
+        items: [
+          PopupMenuItem(child: Text('Editar tarefa #${issue.number}'), value: 1),
+        ],
+        position: RelativeRect.fromSize(
+          event.position & Size(48.0, 48.0),
+          overlay.size
+        )
+      ).then((menuItem) {
+        // Check if menu item clicked
+        switch (menuItem) {
+          case 1:
+            launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}");
+          break;
+        }
+      });
     }
   }
 

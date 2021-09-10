@@ -25,39 +25,39 @@ class GanttChart extends StatelessWidget {
 
   Future<void> _onPointerDown(PointerDownEvent event) async {
     // Check if right mouse button clicked
-    if (event.kind == PointerDeviceKind.mouse &&
-        event.buttons == kSecondaryMouseButton) {
-      final overlay =
-          Overlay.of(context)!.context.findRenderObject() as RenderBox;
-      final menuItem = await showMenu<int>(
-          context: context,
-          items: [
-            PopupMenuItem(child: Text('+3 dias no início'), value: 1),
-            PopupMenuItem(child: Text('+3 dias no final'), value: 2),
-            PopupMenuItem(child: Text('Nova tarefa pra hoje'), value: 3),
-          ],
-          position: RelativeRect.fromSize(
-              event.position & Size(48.0, 48.0), overlay.size));
-      // Check if menu item clicked
-      switch (menuItem) {
-        case 1:
-          GanttChartController.instance.addDaysOnStart();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('+3 dias no início'),
-            behavior: SnackBarBehavior.floating,
-          ));
-        break;
-        case 2:
-          GanttChartController.instance.addDaysOnEnd();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('+3 dias no final'),
-              behavior: SnackBarBehavior.floating));
-        break;
-        case 3:
-          GanttChartController.instance.launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/new?assignees=${GanttChartController.instance.user!.login}&body=```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\ndue_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\nprogress: 0.0\nparent: 0\n```");
-        break;
-        default:
-      }
+    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+      RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
+      showMenu<int>(
+        context: context,
+        items: [
+          PopupMenuItem(child: Text('+3 dias no início'), value: 1),
+          PopupMenuItem(child: Text('+3 dias no final'), value: 2),
+          PopupMenuItem(child: Text('Nova tarefa pra hoje'), value: 3),
+        ],
+        position: RelativeRect.fromSize(
+          event.position & Size(48.0, 48.0), overlay.size
+        )
+      ).then((menuItem) {
+        // Check if menu item clicked
+        switch (menuItem) {
+          case 1:
+            GanttChartController.instance.addDaysOnStart();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('+3 dias no início'),
+              behavior: SnackBarBehavior.floating,
+            ));
+          break;
+          case 2:
+            GanttChartController.instance.addDaysOnEnd();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('+3 dias no final'),
+                behavior: SnackBarBehavior.floating));
+          break;
+          case 3:
+            GanttChartController.instance.launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/new?assignees=${GanttChartController.instance.user!.login}&body=```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\ndue_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\nprogress: 0.0\nparent: 0\n```");
+          break;
+        }
+      });
     }
   }
 
@@ -318,7 +318,7 @@ class GanttChart extends StatelessWidget {
                                             }
                                           }
                                         },
-                                        onPointerDown: _onPointerDown,
+                                        onPointerDown: (event) async => await _onPointerDown(event),
                                         child: ChartGrid()
                                       ),
                                       Container(
