@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../Controller/GanttChartController.dart';
 import 'package:provider/provider.dart';
 import '../Model/Issue.dart';
@@ -42,7 +43,7 @@ class ChartBars extends StatelessWidget {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: issuesValue.state == 'open' ? issuesValue.startTime!.isBefore(DateTime.now()) && issuesValue.endTime!.isBefore(DateTime.now()) ? Colors.purple.withAlpha(100) : Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
+                      color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 && issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple.withAlpha(100) : Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
                       borderRadius: BorderRadius.circular(10.0),
                       border: Border.all(
                         color: Colors.yellow,
@@ -86,7 +87,7 @@ class ChartBars extends StatelessWidget {
                           child: Container(
                             width: 15,
                             decoration: BoxDecoration(
-                              color: issuesValue.state == 'open' ? issuesValue.startTime!.isBefore(DateTime.now()) ? Colors.purple : Colors.red : Colors.green,
+                              color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
                               borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10), topLeft: Radius.circular(10)),
                             ),
                           ),
@@ -137,7 +138,7 @@ class ChartBars extends StatelessWidget {
                           child: Container(
                             width: 15,
                             decoration: BoxDecoration(
-                              color: issuesValue.state == 'open' ? issuesValue.endTime!.isBefore(DateTime.now()) ? Colors.purple : Colors.red : Colors.green,
+                              color: issuesValue.state == 'open' ? issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
                               borderRadius: BorderRadius.only(bottomRight: Radius.circular(10), topRight: Radius.circular(10)),
                             ),
                           ),

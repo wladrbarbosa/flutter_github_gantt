@@ -205,7 +205,7 @@ class GanttChartController extends ChangeNotifier {
         isCtrlPressed = event.isControlPressed;
 
       update();
-      return isAltPressed || isShiftPressed || isCtrlPressed;
+      return KeyEventResult.handled;
     });
   }
   
