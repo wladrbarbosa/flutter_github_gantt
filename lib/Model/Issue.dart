@@ -7,7 +7,7 @@ class Issue extends ChangeNotifier {
     this.title,
     this.startTime,
     this.endTime,
-    this.body = '',
+    this.body,
     this.state = 'open',
     this.selected = false,
     this.dragPosFactor = 0,
@@ -24,7 +24,7 @@ class Issue extends ChangeNotifier {
   DateTime? endTime;
   double _width = 0;
   String state;
-  String body;
+  String? body;
   bool selected;
   bool processing;
   double dragPosFactor;

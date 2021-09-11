@@ -1,11 +1,12 @@
+import 'package:collection/src/iterable_extensions.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/Controller/GanttChartController.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'Controller/RepoController.dart';
 import 'GanttChartApp.dart';
 import 'GitHubAPI.dart';
+import 'Model/User.dart';
 
 void main() {
   runApp(MyApp());
@@ -73,24 +74,19 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController _userToken = TextEditingController();
-  SharedPreferences? prefs;
+  Future<User?>? _user;
+
+  void update() {
+    setState((){
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     GanttChartController.instance.initialize();
     GanttChartController.instance.gitHub = GitHubAPI();
-    SharedPreferences.getInstance().then((value) {
-      prefs = value;
-      _userToken.text = prefs!.getString('token')!;
-      GanttChartController.instance.repo = RepoController(name: prefs!.getString('repo')!);
-      GanttChartController.instance.gitHub!.userToken = _userToken.text;
-      GanttChartController.instance.gitHub!.getUser().then((value) {
-        GanttChartController.instance.gitHub!.getReposList().then((repoList) {
-          setState(() {});
-        });
-      });
-    });
+    _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
   }
 
   @override
@@ -123,12 +119,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         hintText: 'Personal token'
                       ),
                       onChanged: (value) async {
-                        await prefs!.setString('token', value);
+                        await GanttChartController.instance.prefs!.setString('token', value);
                         GanttChartController.instance.gitHub!.userToken = value;
-                        await GanttChartController.instance.gitHub!.getUser();
-                        await GanttChartController.instance.gitHub!.getReposList().then((value) {
-                          setState(() {});
-                        });
+                        _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
                       },
                     ),
                   ),
@@ -143,20 +136,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       Expanded(
                         flex: 3,
                         child: Container(
-                          child: DropdownButton<String>(
-                            value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.name,
+                          child: DropdownButton<int>(
+                            value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
                             onChanged: (newValue) {
                               setState(() {
-                                GanttChartController.instance.repo = RepoController(name: newValue);
-                                prefs!.setString('repo', newValue!);
+                                GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
+                                GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
                               });
                             },
                             hint: Text(
                               'Selecione o repositório...',
                             ),
-                            items: GanttChartController.instance.reposList.map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                            items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
                               child: Text(e.name!),
-                              value: e.name,
+                              value: e.id,
                             )).toList()
                           ),
                         ),
@@ -188,19 +181,37 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: ChangeNotifierProvider<RepoController?>.value(
-          value: GanttChartController.instance.repo,
-          child: Consumer<RepoController?>(
-            builder: (repoContext, repoValue, child) {
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: GanttChartApp(
-                  repo: repoValue != null ? repoValue.name : '',
-                  token: _userToken.text,
-                ),
-              );
+        child: FutureBuilder<User?>(
+          future: _user,
+          builder: (userContext, userSnapshot) {
+            if (userSnapshot.connectionState == ConnectionState.done) {
+              if (userSnapshot.hasData)
+                return ChangeNotifierProvider<RepoController?>.value(
+                  value: GanttChartController.instance.repo,
+                  child: Consumer<RepoController?>(
+                    builder: (repoContext, repoValue, child) {
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: GanttChartApp(
+                          repo: repoValue != null ? repoValue.name : '',
+                          token: _userToken.text,
+                        ),
+                      );
+                    }
+                  ),
+                );
+              else
+                return Center(
+                  child: Text(
+                    'Token inexistente ou incorreta'
+                  ),
+                );
             }
-          ),
+            else
+              return Center(
+                child: CircularProgressIndicator()
+              );
+          }
         ),
       ),// This trailing comma makes auto-formatting nicer for build methods.
     );

@@ -72,7 +72,7 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
                 else
                   return Center(
                     child: Text(
-                      'Token inexistente ou incorreta'
+                      'Não possui tarefas'
                     ),
                   );
               }

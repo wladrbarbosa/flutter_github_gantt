@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Model/User.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
@@ -50,6 +51,7 @@ class GanttChartController extends ChangeNotifier {
   DateTime? fromDate;
   DateTime? toDate;
   double detailsValue = 0;
+  SharedPreferences? prefs;
 
   // torna esta classe singleton
   GanttChartController._privateConstructor();
