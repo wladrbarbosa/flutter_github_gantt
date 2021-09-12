@@ -15,7 +15,7 @@ class ChartGrid extends StatelessWidget {
       gridColumns.add(Container(
         width: GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!,
         decoration: BoxDecoration(
-          color: DateFormat('yyyy-MM-dd').format(GanttChartController.instance.viewRange![i]) == DateFormat('yyyy-MM-dd').format(DateTime.now()) ? Colors.blue.withAlpha(50) : null,
+          color: DateFormat('yyyy-MM-dd').format(GanttChartController.instance.viewRange![i]) == DateFormat('yyyy-MM-dd').format(DateTime.now()) ? Colors.blue.withAlpha(100) : GanttChartController.instance.viewRange![i].weekday > 5 ? Colors.grey[800] : null,
           border: Border(
             right: BorderSide(
               color: Colors.grey.withAlpha(100),
