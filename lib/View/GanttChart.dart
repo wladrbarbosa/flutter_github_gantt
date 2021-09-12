@@ -152,7 +152,7 @@ class GanttChart extends StatelessWidget {
                                               ),
                                               height: 30,
                                               decoration: BoxDecoration(
-                                                color: issuesValue.state == 'open' ? Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
+                                                color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 && issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple.withAlpha(100) : Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
                                                 border: issuesValue.selected ? Border.all(
                                                   color: Colors.yellow,
                                                   width: 1,
