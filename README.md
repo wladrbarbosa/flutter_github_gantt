@@ -1,5 +1,7 @@
 # Flutter Github Gantt
 
+Based on https://github.com/lamact/react-issue-ganttchart. Thanks to lamact for this.
+
 This application aims to be a facilitator for those who want to organize themselves regarding their projects hosted on github, providing a schedule with the issues of their repositories through a gantt chart.
 
 ![image](https://user-images.githubusercontent.com/10834873/132966421-87df65b0-acaa-400d-b907-13b4a55b2f63.png)
