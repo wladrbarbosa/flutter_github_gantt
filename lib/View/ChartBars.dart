@@ -35,7 +35,7 @@ class ChartBars extends StatelessWidget {
             if (issuesValue.remainingWidth! > 0)
               return GestureDetector(
                 onTap: () {
-                  GanttChartController.instance.issueSelect(issuesValue);
+                  GanttChartController.instance.issueSelect(issuesValue, data);
                 },
                 child: Listener(
                   onPointerDown: (event) async {

@@ -15,6 +15,7 @@ class GitHubAPI {
   String apiCore = 'https://api.github.com';
   String graphQLCore = 'https://api.github.com/graphql';
   bool refreshIssuesList = true;
+  int pagesLoaded = 0;
 
   Future<T> gitHubGet<T>(String endPoint, {String method = 'GET', Map<String, dynamic>? body}) async {
     Log.netStartShow('$apiCore$endPoint');
@@ -90,59 +91,70 @@ class GitHubAPI {
     return result!;
   }
 
+  Future<void> awaitIssuesPages(int totalPages) async {
+    if (pagesLoaded < totalPages) {
+      Log.show('d', '$pagesLoaded páginas carregadas de $totalPages. Aguardando 100 ms para continuar...');
+      return await Future.delayed(Duration(milliseconds: 100), () async => await awaitIssuesPages(totalPages));
+    }
+  }
+
   Future<List<Issue>> getIssuesList() async {
     Map<String, dynamic>? resultTotalIssues = await gitHubGraphQLQuery("query {repository(owner:\"${GanttChartController.instance.user!.login}\",name:\"${GanttChartController.instance.repo!.name}\"){issues {totalCount}}}");
-    int numberOsPages = 0;
+    int numberOfPages = 0;
     List<Issue> responseLits = [];
     DateTime? chartStart;
     DateTime? chartEnd;
+    pagesLoaded = 0;
 
     if (resultTotalIssues != null)
-      numberOsPages = (resultTotalIssues['data']['repository']['issues']['totalCount'] / 100 as double).ceil();
+      numberOfPages = (resultTotalIssues['data']['repository']['issues']['totalCount'] / 100 as double).ceil();
 
-    for (int j = 1; j <= numberOsPages; j++) {
-      List<dynamic> issuesList = await gitHubGet<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}');
+    for (int j = 1; j <= numberOfPages; j++) {
+      gitHubGet<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
+        for (int i = 0; i < issuesList.length; i++) {
+          DateTime? startTime;
+          DateTime? endTime;
 
-      for (int i = 0; i < issuesList.length; i++) {
-        DateTime? startTime;
-        DateTime? endTime;
-
-        try {
-          startTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
-          endTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
-        } catch (e) {
           try {
-            startTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
-            endTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);  
+            startTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
+            endTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
           } catch (e) {
-            startTime = DateTime.now();
-            endTime = DateTime.now();
+            try {
+              startTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
+              endTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);  
+            } catch (e) {
+              startTime = DateTime.now();
+              endTime = DateTime.now();
+            }
           }
-        }
 
-        if (chartStart == null)
-          chartStart = startTime;
-        else if (startTime.isBefore(chartStart)) {
-          chartStart = startTime;
-        }
+          if (chartStart == null)
+            chartStart = startTime;
+          else if (startTime.isBefore(chartStart!)) {
+            chartStart = startTime;
+          }
 
-        if (chartEnd == null)
-          chartEnd = endTime;
-        else if (endTime.isAfter(chartEnd)) {
-          chartEnd = endTime;
-        }
+          if (chartEnd == null)
+            chartEnd = endTime;
+          else if (endTime.isAfter(chartEnd!)) {
+            chartEnd = endTime;
+          }
 
-        responseLits.add(Issue(
-          title: issuesList[i]['title'],
-          startTime: startTime,
-          endTime: endTime,
-          number: issuesList[i]['number'],
-          assignees: (issuesList[i]['assignees'] as List<dynamic>).map<String>((e) => e['login']).toList(),
-          state: issuesList[i]['state'],
-          body: issuesList[i]['body'],
-        ));
-      }
+          responseLits.add(Issue(
+            title: issuesList[i]['title'],
+            startTime: startTime,
+            endTime: endTime,
+            number: issuesList[i]['number'],
+            assignees: (issuesList[i]['assignees'] as List<dynamic>).map<String>((e) => e['login']).toList(),
+            state: issuesList[i]['state'],
+            body: issuesList[i]['body'],
+          ));
+        }
+        pagesLoaded++;
+      });
     }
+
+    await awaitIssuesPages(numberOfPages);
 
     refreshIssuesList = false;
     GanttChartController.instance.fromDate = chartStart!.subtract(Duration(days: 5));

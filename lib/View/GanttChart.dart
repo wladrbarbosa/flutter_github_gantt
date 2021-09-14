@@ -139,7 +139,7 @@ class GanttChart extends StatelessWidget {
                                       builder: (issuesContext, issuesValue, child) {
                                         return GestureDetector(
                                           onTap: () {
-                                            ganttChartValue.issueSelect(issuesValue, issueList: userData);
+                                            ganttChartValue.issueSelect(issuesValue, userData);
                                           },
                                           child: Listener(
                                             onPointerDown: (event) async {
@@ -275,11 +275,7 @@ class GanttChart extends StatelessWidget {
                   flex: 9,
                   child: GestureDetector(
                     onTap: () {
-                      for (int i = 0; i < ganttChartValue.selectedIssues.length; i++) {
-                        ganttChartValue.selectedIssues[i]!.toggleSelect();
-                        ganttChartValue.selectedIssues.removeAt(i);
-                        i--;
-                      }
+                      ganttChartValue.removeIssueSelection();
                     },
                     child: LayoutBuilder(
                       builder: (chartContext, constraints) {

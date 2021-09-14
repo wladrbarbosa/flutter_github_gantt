@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -286,17 +286,9 @@ class GanttChartController extends ChangeNotifier {
       selectedIssues[j]!.remainingWidth = selectedIssues[j]!.remainingWidth! + dx.toInt();
     }
 
-    switch (type) {
-      case PanType.Start:
-        isPanStartActive = false;
-      break;
-      case PanType.End:
-        isPanEndActive = false;
-      break;
-      default:
-        isPanMiddleActive = false;
-    }
-
+    isPanStartActive = false;
+    isPanEndActive = false;
+    isPanMiddleActive = false;
     update();
   }
 
@@ -322,44 +314,34 @@ class GanttChartController extends ChangeNotifier {
         selectedIssues[j]!.width = 0;
         selectedIssues[j]!.toggleProcessing();
 
-        gitHub!.updateIssueTime(selectedIssues[j]!).then((value) {
-          selectedIssues[j]!.body = value.body;
-          selectedIssues[j]!.startTime = value.startTime;
-          selectedIssues[j]!.endTime = value.endTime;
-          selectedIssues[j]!.state = value.state;
-          selectedIssues[j]!.title = value.title;
-          selectedIssues[j]!.dragPosFactor = 0;
-          selectedIssues[j]!.remainingWidth = selectedIssues[j]!.remainingWidth! + dx.toInt();
-          selectedIssues[j]!.toggleProcessing();
+        gitHub!.updateIssueTime(selectedIssues[j]!).then((value) async {
+          Issue? temp = selectedIssues.singleWhereOrNull((el) => el!.number == value.number);
 
-          if (j == selectedIssues.length - 1) {
-            switch (type) {
-              case PanType.Start:
-                isPanStartActive = false;
-              break;
-              case PanType.End:
-                isPanEndActive = false;
-              break;
-              default:
-                isPanMiddleActive = false;
+          if (temp != null) {
+            temp.body = value.body;
+            temp.startTime = value.startTime;
+            temp.endTime = value.endTime;
+            temp.state = value.state;
+            temp.title = value.title;
+            temp.dragPosFactor = 0;
+            temp.remainingWidth = temp.remainingWidth! + dx.toInt();
+            temp.toggleProcessing();
+
+            if (j == selectedIssues.length - 1) {
+              isPanStartActive = false;
+              isPanEndActive = false;
+              isPanMiddleActive = false;
+              update();
             }
-
-            update();
           }
+          else
+            Log.show('d', 'Issue #${value.number} não está mais selecionada.');
         });
       }
       else {
-        switch (type) {
-          case PanType.Start:
-            isPanStartActive = false;
-          break;
-          case PanType.End:
-            isPanEndActive = false;
-          break;
-          default:
-            isPanMiddleActive = false;
-        }
-
+        isPanStartActive = false;
+        isPanEndActive = false;
+        isPanMiddleActive = false;
         selectedIssues[j]!.width = 0;
         selectedIssues[j]!.dragPosFactor = 0;
         selectedIssues[j]!.update();
@@ -368,15 +350,26 @@ class GanttChartController extends ChangeNotifier {
     }
   }
 
-  void issueSelect(Issue issue, {List<Issue>? issueList}) {
-    if (!isShiftPressed && !issue.selected)
-      for (int j = 0; j < selectedIssues.length; j++) {
-        selectedIssues[j]!.toggleSelect();
-        selectedIssues.removeAt(j);
-        j--;
-      }
+  Future<void> removeIssueSelection() async {
+    for (int i = 0; i < selectedIssues.length; i++) {
+      if (selectedIssues[i]!.selected)
+        selectedIssues[i]!.toggleSelect();
 
-    if (isShiftPressed && isCtrlPressed && issueList != null) {
+      if (selectedIssues[i]!.processing) {
+        Log.show('d', 'Processando issue #${selectedIssues[i]!.number}. Aguardando 100 ms para tentar novamente...');
+        return await Future.delayed(Duration(milliseconds: 100), () => removeIssueSelection());
+      }
+      
+      selectedIssues.remove(selectedIssues[i]!);
+      i--;
+    }
+  }
+
+  void issueSelect(Issue issue, List<Issue> issueList) {
+    if (!isShiftPressed && !issue.selected)
+      removeIssueSelection();
+
+    if (isShiftPressed && isCtrlPressed) {
       int start = 0;
       
       if (selectedIssues.length > 0)
@@ -397,7 +390,7 @@ class GanttChartController extends ChangeNotifier {
       if (issue.selected)
         selectedIssues.add(issue);
       else
-        selectedIssues.remove(issue);
+        removeIssueSelection();
     }
   }
 }
