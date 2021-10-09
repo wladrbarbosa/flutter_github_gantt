@@ -265,18 +265,20 @@ class GanttChartController extends ChangeNotifier {
       selectedIssues[j]!.startPanChartPos = horizontalController.position.pixels;
     }
     
-    switch (type) {
-      case PanType.Start:
-        isPanStartActive = true;
-      break;
-      case PanType.End:
-        isPanEndActive = true;
-      break;
-      default:
-        isPanMiddleActive = true;
-    }
+    if (selectedIssues.length > 0) {
+      switch (type) {
+        case PanType.Start:
+          isPanStartActive = true;
+        break;
+        case PanType.End:
+          isPanEndActive = true;
+        break;
+        default:
+          isPanMiddleActive = true;
+      }
 
-    update();
+      update();
+    }
   }
 
   void onIssuePanCancel(PanType type) {
