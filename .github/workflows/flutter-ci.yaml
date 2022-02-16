@@ -61,7 +61,8 @@ jobs:
     - uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.SSH }}
-        name: id_rsa
+        name: id_ed25519
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
         
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
@@ -100,7 +101,8 @@ jobs:
     - uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.SSH }}
-        name: id_rsa
+        name: id_ed25519
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
         
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
@@ -139,7 +141,8 @@ jobs:
     - uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.SSH }}
-        name: id_rsa
+        name: id_ed25519
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
         
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
