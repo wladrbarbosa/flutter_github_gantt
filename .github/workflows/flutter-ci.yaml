@@ -14,7 +14,12 @@ jobs:
     # This job will run on ubuntu virtual machine
     runs-on: ubuntu-latest
     steps:
-    
+    # Setup ssh key for some repositories
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH }}
+        name: id_rsa
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
     - uses: actions/setup-java@v2
@@ -52,7 +57,12 @@ jobs:
     # This job will run on ubuntu virtual machine
     runs-on: macos-latest
     steps:
-    
+    # Setup ssh key for some repositories
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH }}
+        name: id_rsa
+        
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
 
@@ -86,7 +96,12 @@ jobs:
     # This job will run on ubuntu virtual machine
     runs-on: ubuntu-latest
     steps:
-    
+    # Setup ssh key for some repositories
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH }}
+        name: id_rsa
+        
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
 
@@ -120,7 +135,12 @@ jobs:
     # This job will run on ubuntu virtual machine
     runs-on: windows-latest
     steps:
-    
+    # Setup ssh key for some repositories
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH }}
+        name: id_rsa
+        
     # Setup Java environment in order to build the Android app.
     - uses: actions/checkout@v2
 
