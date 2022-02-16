@@ -1,8 +1,12 @@
 import 'dart:math';
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/Model/Assignees.dart';
+import 'package:flutter_github_gantt/Model/Label.dart';
+import 'package:flutter_github_gantt/Model/Milestone.dart';
+import 'package:flutter_github_gantt/Model/RateLimit.dart';
+import 'package:flutter_github_gantt/View/NewIssueDialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Model/User.dart';
@@ -52,6 +56,15 @@ class GanttChartController extends ChangeNotifier {
   DateTime? toDate;
   double detailsValue = 0;
   SharedPreferences? prefs;
+  Future<List<Issue>>? issueListFuture;
+  List<Issue>? issueList;
+  Future<List<Assignee>>? assigneesListFuture;
+  Future<List<Label>>? labelsListFuture;
+  Future<List<Milestone>>? milestoneListFuture;
+  RateLimit? rateLimit;
+  // Ao tocar com botão direito na grid, se for espaço vazio seta -1
+  // senão seta o indice da issue abaixo do ponteiro/toque
+  int contextIssueIndex = -1;
 
   // torna esta classe singleton
   GanttChartController._privateConstructor();
@@ -62,10 +75,74 @@ class GanttChartController extends ChangeNotifier {
     return Color.fromRGBO(r.nextInt(256), r.nextInt(256), r.nextInt(256), 0.75);
   }
 
-  get issuesListWidth => _issuesListWidth;
-  set issuesListWidth(value) {
+  double get issuesListWidth => _issuesListWidth;
+  set issuesListWidth(double value) {
     _issuesListWidth = value;
     update();
+  }
+
+  Future<void> onPointerDown(PointerDownEvent event, BuildContext context) async {
+    Future.delayed(Duration(milliseconds: 50), () async {
+      if (contextIssueIndex != -1) {
+        await onIssueRightButton(context, event);
+      }
+      else {
+        _onGridPointerDown(event, context);
+      }
+
+      contextIssueIndex = -1;
+    });
+  }
+
+  void _onGridPointerDown(PointerDownEvent event, BuildContext context) {
+    // Check if right mouse button clicked
+    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+      RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
+      showMenu<int>(
+        context: context,
+        items: [
+          PopupMenuItem(child: Text('+3 dias no início'), value: 1),
+          PopupMenuItem(child: Text('+3 dias no final'), value: 2),
+          PopupMenuItem(child: Text('Nova tarefa'), value: 3),
+        ],
+        position: RelativeRect.fromSize(
+          event.position & Size(48.0, 48.0), overlay.size
+        )
+      ).then((menuItem) async {
+        // Check if menu item clicked
+        switch (menuItem) {
+          case 1:
+            addDaysOnStart();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('+3 dias no início'),
+              behavior: SnackBarBehavior.floating,
+            ));
+          break;
+          case 2:
+            addDaysOnEnd();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('+3 dias no final'),
+                behavior: SnackBarBehavior.floating));
+          break;
+          case 3:
+            List<Assignee>? assignees = await assigneesListFuture;
+            List<Label>? labels = await labelsListFuture;
+            List<Milestone>? milestones = await milestoneListFuture;
+
+            await showDialog(
+              context: context,
+              builder: (NewIssueDialogContext) {
+                return NewIssueDialog(
+                  assignees: assignees,
+                  labels: labels,
+                  milestones: milestones,
+                );
+              }
+            );
+          break;
+        }
+      });
+    }
   }
 
   List<DateTime> calculateNumberOfDaysBetween(DateTime from, DateTime to) {
@@ -89,24 +166,51 @@ class GanttChartController extends ChangeNotifier {
     return;
   }
 
-  Future<void> onIssueRightButton(BuildContext context, PointerDownEvent event, Issue issue) async {
+  Future<void> onIssueRightButton(BuildContext context, PointerDownEvent event) async {
     // Check if right mouse button clicked
-    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+    if (selectedIssues.length > 0 && event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+      List<PopupMenuEntry<int>> items = [
+        PopupMenuItem(child: Text('Excluir tarefas selecionadas'), value: 2),
+        PopupMenuItem(child: Text('Inverter estado (aberta/fechada) das tarefas selecionadas'), value: 3),
+      ];
+
+      if (selectedIssues.length == 1)
+        items.insert(0, PopupMenuItem(child: Text('Editar tarefa #${selectedIssues[0]!.number}'), value: 1));
+
       RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
-      showMenu<int>(
+      await showMenu<int>(
         context: context,
-        items: [
-          PopupMenuItem(child: Text('Editar tarefa #${issue.number}'), value: 1),
-        ],
+        items: items,
         position: RelativeRect.fromSize(
           event.position & Size(48.0, 48.0),
           overlay.size
         )
-      ).then((menuItem) {
+      ).then((menuItem) async {
         // Check if menu item clicked
         switch (menuItem) {
+          // Default precisa estar vazio por conta da não escolha
           case 1:
-            launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}");
+            List<Assignee>? assignees = await assigneesListFuture;
+            List<Label>? labels = await labelsListFuture;
+            List<Milestone>? milestones = await milestoneListFuture;
+
+            await showDialog(
+              context: context,
+              builder: (NewIssueDialogContext) {
+                return NewIssueDialog(
+                  assignees: assignees,
+                  labels: labels,
+                  milestones: milestones,
+                  issue: selectedIssues[0],
+                );
+              }
+            );
+          break;
+          case 2:
+            gitHub!.deleteSelectedIssues();
+          break;
+          case 3:
+            await gitHub!.changeSelectedIssuesState();
           break;
         }
       });
@@ -148,6 +252,13 @@ class GanttChartController extends ChangeNotifier {
       return calculateNumberOfDaysBetween(fromDate!, projectStartedAt).length - 1;
   }
 
+  int calculateDistanceToRightBorder(DateTime projectEndedAt) {
+    if (projectEndedAt.compareTo(toDate!) > 0) {
+      return 0;
+    } else
+      return calculateNumberOfDaysBetween(projectEndedAt, toDate!).length - 1;
+  }
+
   void onScrollChange() {
     for (int i = 0; i < selectedIssues.length; i++) {
       bool overLimits = false;
@@ -163,16 +274,16 @@ class GanttChartController extends ChangeNotifier {
         if (isPanEndActive || (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0)) {
           overLimits = overLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewWidth / viewRangeToFitScreen! + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) <= chartViewWidth / viewRangeToFitScreen!;
           overLimits = overLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewWidth / viewRangeToFitScreen! >= viewRange!.length * chartViewWidth / viewRangeToFitScreen!;
+          overLimits = overLimits || calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewWidth / viewRangeToFitScreen! - selectedIssues[i]!.width - (horizontalController.position.pixels - lastScrollPos) <= 0;
           underLimits = underLimits || calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewWidth / viewRangeToFitScreen! + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) + (selectedIssues[i]!.draggingRemainingWidth! * chartViewWidth / viewRangeToFitScreen!) <= horizontalController.position.pixels;
         }
 
         if (overLimits && !underLimits) {
           selectedIssues[i]!.dragPosFactor = 0;
-          selectedIssues[i]!.width = (selectedIssues[i]!.draggingRemainingWidth! - 1) * chartViewWidth / viewRangeToFitScreen!;
+          selectedIssues[i]!.width = (calculateDistanceToRightBorder(selectedIssues[i]!.endTime!)) * chartViewWidth / viewRangeToFitScreen!;
         }
         else if (underLimits && !overLimits) {
           selectedIssues[i]!.width = -(calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewWidth / viewRangeToFitScreen! - horizontalController.position.pixels);
-          Log.show('d', '${selectedIssues[i]!.width}');
         }
         else if (!underLimits && !overLimits)
           selectedIssues[i]!.width += horizontalController.position.pixels - lastScrollPos;
@@ -192,9 +303,9 @@ class GanttChartController extends ChangeNotifier {
     horizontalController.addListener(onScrollChange);
   }
 
-  setContext(BuildContext context, double issueListWidth) {
+  setContext(BuildContext context, double issueListFutureWidth) {
     rootContext = context;
-    this._issuesListWidth = issueListWidth;
+    this._issuesListWidth = issueListFutureWidth;
 
     nodeAttachment = focus.attach(context, onKey: (node, event) {
       if (isAltPressed != event.isAltPressed)
@@ -235,7 +346,8 @@ class GanttChartController extends ChangeNotifier {
   void onIssueEndUpdate(BuildContext context, DragUpdateDetails details, double chartAreaWidth) {
     for (int j = 0; j < selectedIssues.length; j++) {
       if (selectedIssues[j]!.remainingWidth! * chartViewWidth / viewRangeToFitScreen! + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) >= chartViewWidth / viewRangeToFitScreen!) {
-        if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewWidth / viewRangeToFitScreen! - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) < chartViewWidth / viewRangeToFitScreen! * viewRange!.length) {
+        if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewWidth / viewRangeToFitScreen! - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) < chartViewWidth / viewRangeToFitScreen! * viewRange!.length &&
+          calculateDistanceToRightBorder(selectedIssues[j]!.endTime!) * chartViewWidth / viewRangeToFitScreen! - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) > 0) {
           selectedIssues[j]!.width = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels);
           selectedIssues[j]!.dragPosFactor = (details.globalPosition.dx - (MediaQuery.of(context).size.width - chartAreaWidth)) / chartAreaWidth - 0.5;
         }
@@ -250,7 +362,8 @@ class GanttChartController extends ChangeNotifier {
   void onIssueDateUpdate(BuildContext context, DragUpdateDetails details, double chartAreaWidth) {
     for (int j = 0; j < selectedIssues.length; j++) {
       if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewWidth / viewRangeToFitScreen! + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) > 0 &&
-        calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewWidth / viewRangeToFitScreen! + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) < chartViewWidth / viewRangeToFitScreen! * viewRange!.length) {
+        calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewWidth / viewRangeToFitScreen! + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) < chartViewWidth / viewRangeToFitScreen! * viewRange!.length &&
+        calculateDistanceToRightBorder(selectedIssues[j]!.endTime!) * chartViewWidth / viewRangeToFitScreen! - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels)) > 0) {
         selectedIssues[j]!.width = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.position.pixels);
         selectedIssues[j]!.dragPosFactor = (details.globalPosition.dx - (MediaQuery.of(context).size.width - chartAreaWidth)) / chartAreaWidth - 0.5;
       }
@@ -367,7 +480,7 @@ class GanttChartController extends ChangeNotifier {
     }
   }
 
-  void issueSelect(Issue issue, List<Issue> issueList) {
+  void issueSelect(Issue issue, List<Issue> pIssueList) {
     if (!isShiftPressed && !issue.selected)
       removeIssueSelection();
 
@@ -375,14 +488,14 @@ class GanttChartController extends ChangeNotifier {
       int start = 0;
       
       if (selectedIssues.length > 0)
-        start = issueList.indexOf(selectedIssues[selectedIssues.length - 1]!);
+        start = pIssueList.indexOf(selectedIssues[selectedIssues.length - 1]!);
       
-      int end = issueList.indexOf(issue);
+      int end = pIssueList.indexOf(issue);
 
       for (int j = start; start < end ? j <= end : j >= end; start < end ? j++ : j--) {
-        if (!issueList[j].selected) {
-          selectedIssues.add(issueList[j]);
-          issueList[j].toggleSelect();
+        if (!pIssueList[j].selected) {
+          selectedIssues.add(pIssueList[j]);
+          pIssueList[j].toggleSelect();
         }
       }
     }

@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_github_gantt/Model/Assignees.dart';
+import 'package:flutter_github_gantt/Model/Label.dart';
+import 'package:flutter_github_gantt/Model/Milestone.dart';
+import 'package:flutter_github_gantt/Model/RateLimit.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,9 +21,10 @@ class GitHubAPI {
   bool refreshIssuesList = true;
   int pagesLoaded = 0;
 
-  Future<T> gitHubGet<T>(String endPoint, {String method = 'GET', Map<String, dynamic>? body}) async {
-    Log.netStartShow('$apiCore$endPoint');
-    Response response;
+  Future<T> gitHubRequest<T>(String endPoint, {String method = 'GET', Map<String, dynamic>? body}) async {
+    String? encodedBody = body == null ? null : json.encode(body);
+    Log.netStartShow('$apiCore$endPoint', data: encodedBody);
+    Response? response;
     T? result;
 
     try {
@@ -33,7 +38,19 @@ class GitHubAPI {
               HttpHeaders.contentTypeHeader: 'application/json; charset=utf-8',
               HttpHeaders.authorizationHeader: 'Bearer $userToken',
             },
-            body: body == null ? null : json.encode(body),
+            body: encodedBody,
+          );
+        break;
+        case 'POST':
+          response = await post(
+            Uri.parse('$apiCore$endPoint'),
+            headers: {
+              HttpHeaders.acceptHeader: 'application/json',
+              HttpHeaders.acceptLanguageHeader: 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+              HttpHeaders.contentTypeHeader: 'application/json; charset=utf-8',
+              HttpHeaders.authorizationHeader: 'Bearer $userToken',
+            },
+            body: encodedBody,
           );
         break;
         default:
@@ -63,8 +80,8 @@ class GitHubAPI {
   }
 
   Future<dynamic> gitHubGraphQLQuery(String query) async {
-    Log.netStartShow('$graphQLCore', data: query);
-    Response response;
+    Log.netStartShow(graphQLCore, data: query);
+    Response? response;
     Map<String, dynamic>? result;
 
     try {
@@ -86,7 +103,7 @@ class GitHubAPI {
       Log.show('e', '$e');
       result = {};
     }
-    Log.netEndShow('$graphQLCore');
+    Log.netEndShow(graphQLCore);
 
     return result!;
   }
@@ -98,7 +115,15 @@ class GitHubAPI {
     }
   }
 
+  Future<void> deleteSelectedIssues() async {
+    for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
+      await gitHubGraphQLQuery("mutation {deleteIssue(input:{issueId:\"${GanttChartController.instance.selectedIssues[i]!.nodeId}\"}){repository {name}}}");
+    }
+    reloadIssues();
+  }
+
   Future<List<Issue>> getIssuesList() async {
+    getRateLimit();
     Map<String, dynamic>? resultTotalIssues = await gitHubGraphQLQuery("query {repository(owner:\"${GanttChartController.instance.user!.login}\",name:\"${GanttChartController.instance.repo!.name}\"){issues {totalCount}}}");
     int numberOfPages = 0;
     List<Issue> responseLits = [];
@@ -110,7 +135,7 @@ class GitHubAPI {
       numberOfPages = (resultTotalIssues['data']['repository']['issues']['totalCount'] / 100 as double).ceil();
 
     for (int j = 1; j <= numberOfPages; j++) {
-      gitHubGet<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
+      gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
         for (int i = 0; i < issuesList.length; i++) {
           DateTime? startTime;
           DateTime? endTime;
@@ -140,15 +165,10 @@ class GitHubAPI {
             chartEnd = endTime;
           }
 
-          responseLits.add(Issue(
-            title: issuesList[i]['title'],
-            startTime: startTime,
-            endTime: endTime,
-            number: issuesList[i]['number'],
-            assignees: (issuesList[i]['assignees'] as List<dynamic>).map<String>((e) => e['login']).toList(),
-            state: issuesList[i]['state'],
-            body: issuesList[i]['body'],
-          ));
+          Issue temp = Issue.fromJson(issuesList[i]);
+          temp.startTime = startTime;
+          temp.endTime = endTime;
+          responseLits.add(temp);
         }
         pagesLoaded++;
       });
@@ -165,9 +185,112 @@ class GitHubAPI {
     );
     return responseLits;
   }
+  
+  void reloadIssues() {
+    Future.delayed(Duration(seconds: 1), () {
+      GanttChartController.instance.gitHub!.refreshIssuesList = true;
+      GanttChartController.instance.repo!.update();
+    });
+  }
+
+  Future<List<Assignee>> createIssue(String title, String body, int? milestone, List<String> assignees, List<String> labels, {bool isClosed = false}) async {
+    List<Assignee> responseList = [];
+
+    gitHubRequest<Map<String, dynamic>>(
+      '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?time=${DateTime.now()}',
+      method: 'POST',
+      body: {
+        'title': title,
+        'body': body,
+        'milestone': milestone,
+        'assignees': assignees,
+        'labels': labels,
+        'state': isClosed ? 'closed' : 'open'
+      }
+    ).then((issue) {
+      Log.show('d', '$issue');
+    });
+
+    reloadIssues();
+    return responseList;
+  }
+
+  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<String> assignees, List<String> labels, {bool isClosed = false}) async {
+    GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
+    gitHubRequest<Map<String, dynamic>>(
+      '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}?time=${DateTime.now()}',
+      method: 'PATCH',
+      body: {
+        'title': title,
+        'body': body,
+        'milestone': milestone,
+        'assignees': assignees,
+        'labels': labels,
+        'state': isClosed ? 'closed' : 'open'
+      }
+    ).then((value) {
+      GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
+      GanttChartController.instance.selectedIssues[0]!.state = Issue.fromJson(value).state;
+      GanttChartController.instance.selectedIssues[0]!.update();
+    });
+  }
+
+  Future<void> changeSelectedIssuesState() async {
+    for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
+      GanttChartController.instance.selectedIssues[i]!.toggleProcessing();
+
+      gitHubRequest<Map<String, dynamic>>(
+        '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${GanttChartController.instance.selectedIssues[i]!.number}?time=${DateTime.now()}',
+        method: 'PATCH',
+        body: {
+          'state': GanttChartController.instance.selectedIssues[i]!.state == 'open' ? 'closed' : 'open',
+        }
+      ).then((value) {
+        GanttChartController.instance.selectedIssues[i]!.toggleProcessing();
+        GanttChartController.instance.selectedIssues[i]!.state = Issue.fromJson(value).state;
+        GanttChartController.instance.selectedIssues[i]!.update();
+      });
+    }
+  }
+
+  Future<List<Milestone>> getRepoMilestonesList() async {
+    List<Milestone> responseList = [];
+
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/milestones?time=${DateTime.now()}').then((milestoneListFuture) {
+      for (int i = 0; i < milestoneListFuture.length; i++) {
+        responseList.add(Milestone.fromJson(milestoneListFuture[i]));
+      }
+    });
+
+    return responseList;
+  }
+
+  Future<List<Assignee>> getRepoassigneesListFuture() async {
+    List<Assignee> responseList = [];
+
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/assignees?time=${DateTime.now()}').then((assigneesListFuture) {
+      for (int i = 0; i < assigneesListFuture.length; i++) {
+        responseList.add(Assignee.fromJson(assigneesListFuture[i]));
+      }
+    });
+
+    return responseList;
+  }
+
+  Future<List<Label>> getRepolabelsListFuture() async {
+    List<Label> responseList = [];
+
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/labels?time=${DateTime.now()}').then((labelsListFuture) {
+      for (int i = 0; i < labelsListFuture.length; i++) {
+        responseList.add(Label.fromJson(labelsListFuture[i]));
+      }
+    });
+
+    return responseList;
+  }
 
   Future<List<RepoController>> getReposList() async {
-    List<dynamic> reposList = await gitHubGet<List<dynamic>>('/user/repos?per_page=100&time=${DateTime.now()}');
+    List<dynamic> reposList = await gitHubRequest<List<dynamic>>('/user/repos?per_page=100&time=${DateTime.now()}');
     List<RepoController> responseLits = [];
 
     for (int i = 0; i < reposList.length; i++) {
@@ -191,7 +314,7 @@ class GitHubAPI {
       GanttChartController.instance.gitHub!.userToken = tokenController.text;
     });
     
-    dynamic user = await gitHubGet<dynamic>('/user?time=${DateTime.now()}');
+    dynamic user = await gitHubRequest<dynamic>('/user?time=${DateTime.now()}');
 
     if (user['login'] != null) {
       GanttChartController.instance.user = User(
@@ -214,7 +337,7 @@ class GitHubAPI {
       currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd').format(currentUssue.endTime!));
     }
 
-    dynamic issue = await gitHubGet<dynamic>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${currentUssue.number}', method: 'PATCH', body: {"body": currentUssue.body});
+    dynamic issue = await gitHubRequest<dynamic>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${currentUssue.number}', method: 'PATCH', body: {"body": currentUssue.body});
     Issue response;
     DateTime? startTime;
     DateTime? endTime;
@@ -232,17 +355,15 @@ class GitHubAPI {
       }
     }
 
-    response = Issue(
-      title: issue['title'],
-      startTime: startTime,
-      endTime: endTime,
-      number: issue['number'],
-      assignees: (issue['assignees'] as List<dynamic>).map<String>((e) => e['login']).toList(),
-      state: issue['state'],
-      body: issue['body'],
-      selected: currentUssue.selected,
-    );
+    response = Issue.fromJson(issue);
+    response.startTime = startTime;
+    response.endTime = endTime;
 
     return response;
+  }
+
+  Future<void> getRateLimit() async {
+    Map<String, dynamic> response = await gitHubRequest<Map<String, dynamic>>('/rate_limit');
+    GanttChartController.instance.rateLimit = RateLimit.fromJson(response);
   }
 }

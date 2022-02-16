@@ -6,16 +6,16 @@ class Log {
     if (!kReleaseMode) {
       switch (level) {
         case 'e':
-          Logger.error('\x1B[37m(${DateTime.now()}) \x1B[31m$msg\x1B[0m');
+          Logger.error(DateTime.now(), msg);
         break;
         case 'w':
-          Logger.warn('\x1B[37m(${DateTime.now()}) \x1B[33m$msg\x1B[0m');
+          Logger.warn(DateTime.now(), msg);
         break;
         case 'd':
-          Logger.debug('\x1B[37m(${DateTime.now()}) \x1B[35m$msg\x1B[0m');
+          Logger.debug(DateTime.now(), msg);
         break;
         default:
-          Logger.log('\x1B[37m(${DateTime.now()}) \x1B[34m$msg\x1B[0m');
+          Logger.log(DateTime.now(), msg);
       }
     }
   }

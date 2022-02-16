@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/Controller/GanttChartController.dart';
+import 'package:flutter_github_gantt/View/About.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'Controller/RepoController.dart';
 import 'GanttChartApp.dart';
@@ -27,12 +29,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: [
+        const Locale('pt', 'BR'), // Brazillian Portuguese, no country code
+        const Locale('en', ''), // English, no country code
+        const Locale('es', ''), // Spanish, no country code
+      ],
       scrollBehavior: MyCustomScrollBehavior(),
       debugShowCheckedModeBanner: false,
       title: 'Github Gantt',
       darkTheme: ThemeData(
         brightness: Brightness.dark,
-        /* dark theme settings */
+        primaryColor: Colors.green,
         primarySwatch: Colors.green,
       ),
       themeMode: ThemeMode.dark,
@@ -49,6 +57,11 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.green,
       ),
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: MyHomePage(title: 'Github Gantt'),
     );
   }
@@ -91,7 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width / 4);
+    if (GanttChartController.instance.rootContext == null)
+      GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width / 4);
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -110,7 +124,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Row(
               children: [
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Container(
                     child: TextField(
                       controller: _userToken,
@@ -134,24 +148,29 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Container()
                       ),
                       Expanded(
-                        flex: 3,
-                        child: Container(
-                          child: DropdownButton<int>(
-                            value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
-                            onChanged: (newValue) {
-                              setState(() {
-                                GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
-                                GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
-                              });
-                            },
-                            hint: Text(
-                              'Selecione o repositório...',
-                            ),
-                            items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
-                              child: Text(e.name!),
-                              value: e.id,
-                            )).toList()
+                        flex: 4,
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
+                          onChanged: (newValue) {
+                            setState(() {
+                              GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
+                              GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
+                            });
+                          },
+                          hint: Text(
+                            'Selecione o repositório...',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                          items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
+                            child: Text(
+                              e.name!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            value: e.id,
+                          )).toList()
                         ),
                       ),
                       Expanded(
@@ -167,6 +186,22 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Text(
                             'Atualizar',
                             style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: TextButton(
+                          onPressed: () async {
+                            await showDialog(
+                              context: context,
+                              builder: (NewIssueDialogContext) {
+                                return About();
+                              }
+                            );
+                          },
+                          child: Icon(
+                            Icons.settings,
                           ),
                         ),
                       ),

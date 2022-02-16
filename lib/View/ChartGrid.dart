@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../Controller/GanttChartController.dart';
@@ -26,8 +27,30 @@ class ChartGrid extends StatelessWidget {
       ));
     }
 
-    return Row(
-      children: gridColumns,
+    return Listener(
+      onPointerSignal: (pointerSignal){
+        if(pointerSignal is PointerScrollEvent && GanttChartController.instance.isAltPressed){
+          if (GanttChartController.instance.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) {
+            double percent = GanttChartController.instance.horizontalController.position.pixels * 100 / (GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length);
+            GanttChartController.instance.viewRangeToFitScreen = GanttChartController.instance.viewRangeToFitScreen! + pointerSignal.scrollDelta.dy.sign.toInt();
+
+            if (pointerSignal.scrollDelta.dy.sign < 0) {
+              GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! / 2);
+              GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+            }
+            else {
+              GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! / 2);
+              GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+            }
+
+            GanttChartController.instance.update();
+          }
+        }
+      },
+      onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, context),
+      child: Row(
+        children: gridColumns,
+      ),
     );
   }
 }

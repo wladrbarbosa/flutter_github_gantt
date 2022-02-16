@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/Model/Assignees.dart';
+import 'package:flutter_github_gantt/Model/Label.dart';
+import 'package:flutter_github_gantt/Model/Milestone.dart';
+import 'package:flutter_github_gantt/View/NewIssueDialog.dart';
 import 'Controller/GanttChartController.dart';
 import 'Model/Issue.dart';
 import 'View/GanttChart.dart';
@@ -26,8 +30,6 @@ class DecrementIntent extends Intent {
 }
 
 class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMixin {
-  Future<List<Issue>>? _issueList;
-
   Future<void> chartScrollListener() async {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
       if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4)
@@ -40,7 +42,10 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
   @override
   void initState() {
     super.initState();
-    _issueList = GanttChartController.instance.gitHub!.getIssuesList();
+    GanttChartController.instance.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.instance.issueList = value);
+    GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
+    GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
+    GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     chartScrollListener();
   }
 
@@ -50,12 +55,16 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
     super.dispose();
   }
 
-  @override
+  @override                               
   void didUpdateWidget(GanttChartApp oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.repo != oldWidget.repo || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList)
-      _issueList = GanttChartController.instance.gitHub!.getIssuesList();
+    if (widget.repo != oldWidget.repo || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList) {
+      GanttChartController.instance.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.instance.issueList = value);
+      GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
+      GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
+      GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
+    }
   }
 
   @override
@@ -64,15 +73,41 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
       children: [
         Expanded(
           child: FutureBuilder<List<Issue>>(
-            future: _issueList,
+            future: GanttChartController.instance.issueListFuture,
             builder: (issuesContext, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.hasData)
                   return GanttChart(snapshot.data!, issuesContext, Colors.blueAccent);
                 else
-                  return Center(
-                    child: Text(
-                      'Não possui tarefas'
+                  return Container(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Não possui tarefas'
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            List<Assignee>? assignees = await GanttChartController.instance.assigneesListFuture;
+                            List<Label>? labels = await GanttChartController.instance.labelsListFuture;
+                            List<Milestone>? milestones = await GanttChartController.instance.milestoneListFuture;
+
+                            await showDialog(
+                              context: issuesContext,
+                              builder: (NewIssueDialogContext) {
+                                return NewIssueDialog(
+                                  assignees: assignees,
+                                  labels: labels,
+                                  milestones: milestones,
+                                );
+                              }
+                            );
+                          },
+                          child: Text(
+                            'Criar a primeira agora'
+                          ),
+                        ),
+                      ],
                     ),
                   );
               }

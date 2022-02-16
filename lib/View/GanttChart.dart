@@ -1,13 +1,14 @@
+//Only on web
+//import 'dart:html';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/View/ChartBars.dart';
+import 'package:flutter_github_gantt/View/ChartGrid.dart';
 import 'package:flutter_github_gantt/View/ChartHeader.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../Model/Issue.dart';
 import '../Controller/GanttChartController.dart';
-import 'ChartGrid.dart';
-import 'package:universal_html/html.dart';
 
 class GanttChart extends StatelessWidget {
   final List<Issue> userData;
@@ -23,48 +24,11 @@ class GanttChart extends StatelessWidget {
     }
   ) : super(key: key);
 
-  Future<void> _onPointerDown(PointerDownEvent event) async {
-    // Check if right mouse button clicked
-    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
-      RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
-      showMenu<int>(
-        context: context,
-        items: [
-          PopupMenuItem(child: Text('+3 dias no início'), value: 1),
-          PopupMenuItem(child: Text('+3 dias no final'), value: 2),
-          PopupMenuItem(child: Text('Nova tarefa pra hoje'), value: 3),
-        ],
-        position: RelativeRect.fromSize(
-          event.position & Size(48.0, 48.0), overlay.size
-        )
-      ).then((menuItem) {
-        // Check if menu item clicked
-        switch (menuItem) {
-          case 1:
-            GanttChartController.instance.addDaysOnStart();
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('+3 dias no início'),
-              behavior: SnackBarBehavior.floating,
-            ));
-          break;
-          case 2:
-            GanttChartController.instance.addDaysOnEnd();
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('+3 dias no final'),
-                behavior: SnackBarBehavior.floating));
-          break;
-          case 3:
-            GanttChartController.instance.launchURL("https://github.com/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/new?assignees=${GanttChartController.instance.user!.login}&body=```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\ndue_date: ${DateFormat('yyyy/MM/dd').format(DateTime.now())}\nprogress: 0.0\nparent: 0\n```");
-          break;
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     GanttChartController.instance.nodeAttachment.reparent();
-    document.onContextMenu.listen((event) => event.preventDefault());
+    //Only on web
+    //document.onContextMenu.listen((event) => event.preventDefault());
 
     return ChangeNotifierProvider<GanttChartController>.value(
       value: GanttChartController.instance,
@@ -77,7 +41,7 @@ class GanttChart extends StatelessWidget {
               startOrder = a.endTime!.compareTo(b.endTime!);
 
               if (startOrder == 0) {
-                startOrder = a.state.compareTo(b.state);
+                startOrder = a.state!.compareTo(b.state!);
 
                 if (startOrder == 0)
                   return a.number!.compareTo(b.number!);
@@ -143,7 +107,7 @@ class GanttChart extends StatelessWidget {
                                           },
                                           child: Listener(
                                             onPointerDown: (event) async {
-                                              await ganttChartValue.onIssueRightButton(issuesContext, event, issuesValue);
+                                              await ganttChartValue.onIssueRightButton(issuesContext, event);
                                             },
                                             child: Container(
                                               margin: EdgeInsets.only(
@@ -190,7 +154,7 @@ class GanttChart extends StatelessWidget {
                                                     child: Container(
                                                       alignment: Alignment.centerRight,
                                                       child: Text(
-                                                        issuesValue.assignees!.fold<String>('', (previousValue, el) => previousValue == '' ? el : '$previousValue, $el'),
+                                                        issuesValue.assignees!.fold<String>('', (previousValue, el) => previousValue == '' ? el.login! : '$previousValue, ${el.login}'),
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
@@ -285,7 +249,44 @@ class GanttChart extends StatelessWidget {
                           physics: ganttChartValue.isPanStartActive || ganttChartValue.isPanEndActive || ganttChartValue.isPanMiddleActive ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
                           child: Stack(
                             children: [
-                              SingleChildScrollView(
+                              Container(
+                                width: ganttChartValue.calculateNumberOfDaysBetween(ganttChartValue.fromDate!, ganttChartValue.toDate!).length * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen!,
+                                child: Listener(
+                                  onPointerSignal: (pointerSignal){
+                                    if(pointerSignal is PointerScrollEvent && ganttChartValue.isAltPressed){
+                                      if (ganttChartValue.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) {
+                                        double percent = ganttChartValue.horizontalController.position.pixels * 100 / (ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length);
+                                        ganttChartValue.viewRangeToFitScreen = ganttChartValue.viewRangeToFitScreen! + pointerSignal.scrollDelta.dy.sign.toInt();
+
+                                        if (pointerSignal.scrollDelta.dy.sign < 0) {
+                                          ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
+                                          ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
+                                        }
+                                        else {
+                                          ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
+                                          ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
+                                        }
+
+                                        ganttChartValue.update();
+                                      }
+                                    }
+                                  },
+                                  onPointerDown: (event) async => await ganttChartValue.onPointerDown(event, chartContext),
+                                  child: Stack(
+                                    fit: StackFit.loose,
+                                    children: <Widget>[
+                                      ChartGrid(),
+                                      ChartBars(
+                                        gantChartController: ganttChartValue,
+                                        constraints: constraints,
+                                        color: color,
+                                        data: userData,
+                                      )
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              /*SingleChildScrollView(
                                 controller: ganttChartValue.chartController,
                                 physics: ganttChartValue.isAltPressed ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
                                 child: Container(
@@ -324,7 +325,7 @@ class GanttChart extends StatelessWidget {
                                     ]
                                   ),
                                 ),
-                              ),
+                              ),*/
                               ChartHeader(color: color),
                             ],
                           )
