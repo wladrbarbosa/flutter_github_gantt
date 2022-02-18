@@ -128,7 +128,7 @@ jobs:
     # Build apk.
     - run: flutter build web
     
-    uses: w9jds/firebase-action@master
+    - uses: w9jds/firebase-action@master
       with:
         args: deploy --only hosting
       env:
