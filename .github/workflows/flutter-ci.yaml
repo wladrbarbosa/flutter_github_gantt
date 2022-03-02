@@ -5,7 +5,7 @@ name: Flutter CI
 on:
   create:
     tags:
-      - v*
+      - "v*"
 
 jobs:
   build-android:
