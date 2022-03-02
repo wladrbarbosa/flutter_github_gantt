@@ -5,10 +5,8 @@ name: Flutter CI
 on:
   push:
     tags:        
-      - '*'
-    
-# on: push    # Default will running for every branch.
-    
+      - '**'
+
 jobs:
   build-android:
     # This job will run on ubuntu virtual machine
