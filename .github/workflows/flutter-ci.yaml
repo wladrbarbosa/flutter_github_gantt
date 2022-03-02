@@ -4,11 +4,10 @@ name: Flutter CI
 
 on:
   create:
-    tags:
-      - "*"
 
 jobs:
   build-android:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
     runs-on: ubuntu-latest
     steps:
@@ -52,6 +51,7 @@ jobs:
         name: release-android
         path: build/app/outputs/apk/release/app-release.apk
   build-ios:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
     runs-on: macos-latest
     steps:
@@ -92,6 +92,7 @@ jobs:
         name: release-ios
         path: build/ios/ipa/
   build-web:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
     runs-on: ubuntu-latest
     steps:
@@ -137,6 +138,7 @@ jobs:
         name: release-web
         path: build/web/
   build-windows:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
     runs-on: windows-latest
     steps:
@@ -177,11 +179,12 @@ jobs:
         name: release-windows
         path: build/windows/runner/Release/
   create-release:
-      needs: [build-windows, build-web, build-ios, build-android]
-      runs-on: ubuntu-latest
-      steps:
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "release-windows.zip,release-web.zip,release-android.zip,release-ios.zip"
-          omitBody: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: [build-windows, build-web, build-ios, build-android]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "release-windows.zip,release-web.zip,release-android.zip,release-ios.zip"
+        omitBody: true
+        token: ${{ secrets.GITHUB_TOKEN }}
