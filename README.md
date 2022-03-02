@@ -19,6 +19,14 @@ This application aims to be a facilitator for those who want to organize themsel
 1. Insert it on text field on top of page
 1. Select a repository on right of it 
 
+## Class Diagram generation and exportation
+
+1. Type in the terminal: `flutter pub run dcdg -o don dcdg -o docs/diagram.puml`. -o is the output location.
+1. Open the diagram file inside vscode and type Ctrl + Shift + P
+1. Type PlantUML and search for PlantUML: Export Current Diagram
+
+![image](out/docs/diagram/diagram.png)
+
 ## Features
 
     ✔️ Repo selection based on collaboration and not on ownerity
@@ -33,3 +41,5 @@ This application aims to be a facilitator for those who want to organize themsel
     ✔️ Blue column for today
     ✔️ Select (yellow border issues) and drag to change scheduling
     ✔️ "About" screen for visualize app version and rate limits informations
+    ✔️ Show dependencies on Gantt Chart
+    ✔️ Edit dependencies on issue update dialog

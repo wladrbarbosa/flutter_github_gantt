@@ -1,0 +1,547 @@
+@startuml
+set namespaceSeparator ::
+
+class "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" {
+  -double _issuesListWidth
+  +int? viewRangeToFitScreen
+  +List<DateTime>? viewRange
+  +Color? userColor
+  +double initX
+  +double initY
+  +double dx
+  +double dy
+  +bool isPanStartActive
+  +bool isPanMiddleActive
+  +bool isPanEndActive
+  +ScrollController gridHorizontalController
+  +GitHubAPI? gitHub
+  +LinkedScrollControllerGroup controllers
+  +ScrollController horizontalController
+  +List<Issue?> selectedIssues
+  +double lastScrollPos
+  +double chartViewWidth
+  +bool isAltPressed
+  +bool isShiftPressed
+  +bool isCtrlPressed
+  +ScrollController chartController
+  +ScrollController listController
+  +BuildContext? rootContext
+  +List<RepoController> reposList
+  +RepoController? repo
+  +FocusNode focus
+  +FocusAttachment nodeAttachment
+  +User? user
+  +DateTime? fromDate
+  +DateTime? toDate
+  +double detailsValue
+  +SharedPreferences? prefs
+  +Future<List<Issue>>? issueListFuture
+  +List<Issue>? issueList
+  +Future<List<Assignee>>? assigneesListFuture
+  +Future<List<Label>>? labelsListFuture
+  +Future<List<Milestone>>? milestoneListFuture
+  +RateLimit? rateLimit
+  +double lastVerticalPos
+  +double lastHorizontalPos
+  +int contextIssueIndex
+  {static} +GanttChartController instance
+  +double issuesListWidth
+  +Color randomColorGenerator()
+  +void rememberScrollPositions()
+  +Future<void> onPointerDown()
+  -void _onGridPointerDown()
+  +List<DateTime> calculateNumberOfDaysBetween()
+  +void launchURL()
+  +Future<void> onIssueRightButton()
+  +void addDaysOnStart()
+  +void addDaysOnEnd()
+  +int calculateRemainingWidth()
+  +int calculateDistanceToLeftBorder()
+  +int calculateDistanceToRightBorder()
+  +void onScrollChange()
+  +dynamic initialize()
+  +dynamic setContext()
+  +void update()
+  +void onIssueStartUpdate()
+  +void onIssueEndUpdate()
+  +void onIssueDateUpdate()
+  +void onIssueStartPan()
+  +void onIssuePanCancel()
+  +void onIssueEndPan()
+  +Future<void> removeIssueSelection()
+  +void issueSelect()
+}
+
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "dart::ui::Color"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter::src::widgets::scroll_controller.dart::ScrollController"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter_github_gantt::GitHubAPI.dart::GitHubAPI"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "linked_scroll_controller::linked_scroll_controller.dart::LinkedScrollControllerGroup"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter::src::widgets::framework.dart::BuildContext"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter_github_gantt::Controller::RepoController.dart::RepoController"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter::src::widgets::focus_manager.dart::FocusNode"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter::src::widgets::focus_manager.dart::FocusAttachment"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter_github_gantt::Model::User.dart::User"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "shared_preferences::shared_preferences.dart::SharedPreferences"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter_github_gantt::Model::RateLimit.dart::RateLimit"
+"flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController" o-- "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController"
+"flutter::src::foundation::change_notifier.dart::ChangeNotifier" <|-- "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController"
+
+class "flutter_github_gantt::Controller::GanttChartController.dart::PanType" {
+  +int index
+  {static} +List<PanType> values
+  {static} +PanType Start
+  {static} +PanType Middle
+  {static} +PanType End
+}
+
+"flutter_github_gantt::Controller::GanttChartController.dart::PanType" o-- "flutter_github_gantt::Controller::GanttChartController.dart::PanType"
+"dart::core::Enum" <|-- "flutter_github_gantt::Controller::GanttChartController.dart::PanType"
+
+class "flutter_github_gantt::Controller::RepoController.dart::RepoController" {
+  +int? id
+  +String? nodeId
+  +String? name
+  +String? fullName
+  +bool? private
+  +Assignee? owner
+  +String? htmlUrl
+  +String? description
+  +bool? fork
+  +String? url
+  +String? forksUrl
+  +String? keysUrl
+  +String? collaboratorsUrl
+  +String? teamsUrl
+  +String? hooksUrl
+  +String? issueEventsUrl
+  +String? eventsUrl
+  +String? assigneesUrl
+  +String? branchesUrl
+  +String? tagsUrl
+  +String? blobsUrl
+  +String? gitTagsUrl
+  +String? gitRefsUrl
+  +String? treesUrl
+  +String? statusesUrl
+  +String? languagesUrl
+  +String? stargazersUrl
+  +String? contributorsUrl
+  +String? subscribersUrl
+  +String? subscriptionUrl
+  +String? commitsUrl
+  +String? gitCommitsUrl
+  +String? commentsUrl
+  +String? issueCommentUrl
+  +String? contentsUrl
+  +String? compareUrl
+  +String? mergesUrl
+  +String? archiveUrl
+  +String? downloadsUrl
+  +String? issuesUrl
+  +String? pullsUrl
+  +String? milestonesUrl
+  +String? notificationsUrl
+  +String? labelsUrl
+  +String? releasesUrl
+  +String? deploymentsUrl
+  +String? createdAt
+  +String? updatedAt
+  +String? pushedAt
+  +String? gitUrl
+  +String? sshUrl
+  +String? cloneUrl
+  +String? svnUrl
+  +String? homepage
+  +int? size
+  +int? stargazersCount
+  +int? watchersCount
+  +String? language
+  +bool? hasIssues
+  +bool? hasProjects
+  +bool? hasDownloads
+  +bool? hasWiki
+  +bool? hasPages
+  +int? forksCount
+  +String? mirrorUrl
+  +bool? archived
+  +bool? disabled
+  +int? openIssuesCount
+  +String? license
+  +bool? allowForking
+  +bool? isTemplate
+  +List<String>? topics
+  +String? visibility
+  +int? forks
+  +int? openIssues
+  +int? watchers
+  +String? defaultBranch
+  +Permission? permissions
+  +Map<String, dynamic> toJson()
+  {static} +RepoController fromJSONStr()
+  +String toJSONStr()
+  +void update()
+}
+
+"flutter_github_gantt::Controller::RepoController.dart::RepoController" o-- "flutter_github_gantt::Model::Assignees.dart::Assignee"
+"flutter_github_gantt::Controller::RepoController.dart::RepoController" o-- "flutter_github_gantt::Model::Permission.dart::Permission"
+"flutter::src::foundation::change_notifier.dart::ChangeNotifier" <|-- "flutter_github_gantt::Controller::RepoController.dart::RepoController"
+
+class "flutter_github_gantt::GanttChartApp.dart::GanttChartApp" {
+  +String? repo
+  +String token
+  +GanttChartAppState createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "flutter_github_gantt::GanttChartApp.dart::GanttChartApp"
+
+class "flutter_github_gantt::GanttChartApp.dart::IncrementIntent" {
+}
+
+"flutter::src::widgets::actions.dart::Intent" <|-- "flutter_github_gantt::GanttChartApp.dart::IncrementIntent"
+
+class "flutter_github_gantt::GanttChartApp.dart::DecrementIntent" {
+}
+
+"flutter::src::widgets::actions.dart::Intent" <|-- "flutter_github_gantt::GanttChartApp.dart::DecrementIntent"
+
+class "flutter_github_gantt::GanttChartApp.dart::GanttChartAppState" {
+  +Future<void> chartScrollListener()
+  +void initState()
+  +void dispose()
+  +void didUpdateWidget()
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::State" <|-- "flutter_github_gantt::GanttChartApp.dart::GanttChartAppState"
+"flutter::src::widgets::ticker_provider.dart::TickerProviderStateMixin" <|-- "flutter_github_gantt::GanttChartApp.dart::GanttChartAppState"
+
+class "flutter_github_gantt::GitHubAPI.dart::GitHubAPI" {
+  +String? userToken
+  +String apiCore
+  +String graphQLCore
+  +bool refreshIssuesList
+  +int pagesLoaded
+  +Future<T> gitHubRequest()
+  +Future<dynamic> gitHubGraphQLQuery()
+  +Future<void> awaitIssuesPages()
+  +Future<void> deleteSelectedIssues()
+  +Future<List<Issue>> getIssuesList()
+  +void reloadIssues()
+  +Future<List<Assignee>> createIssue()
+  +Future<void> updateIssue()
+  +Future<void> changeSelectedIssuesState()
+  +Future<List<Milestone>> getRepoMilestonesList()
+  +Future<List<Assignee>> getRepoassigneesListFuture()
+  +Future<List<Label>> getRepolabelsListFuture()
+  +Future<List<RepoController>> getReposList()
+  +Future<User?> getUser()
+  +Future<Issue> updateIssueTime()
+  +Future<void> getRateLimit()
+}
+
+class "flutter_github_gantt::Log.dart::Log" {
+  {static} +dynamic show()
+  {static} +dynamic showLogColors()
+  {static} +dynamic netStartShow()
+  {static} +dynamic netEndShow()
+}
+
+class "flutter_github_gantt::main.dart::MyCustomScrollBehavior" {
+  +Set<PointerDeviceKind> dragDevices
+}
+
+"flutter::src::material::app.dart::MaterialScrollBehavior" <|-- "flutter_github_gantt::main.dart::MyCustomScrollBehavior"
+
+class "flutter_github_gantt::main.dart::MyApp" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::main.dart::MyApp"
+
+class "flutter_github_gantt::main.dart::MyHomePage" {
+  +String title
+  +_MyHomePageState createState()
+}
+
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "flutter_github_gantt::main.dart::MyHomePage"
+
+class "flutter_github_gantt::main.dart::_MyHomePageState" {
+  -TextEditingController _userToken
+  -Future<User?>? _user
+  +void update()
+  +void initState()
+  +Widget build()
+}
+
+"flutter_github_gantt::main.dart::_MyHomePageState" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"flutter::src::widgets::framework.dart::State" <|-- "flutter_github_gantt::main.dart::_MyHomePageState"
+
+class "flutter_github_gantt::Model::Assignees.dart::Assignee" {
+  +String? login
+  +int? id
+  +String? nodeId
+  +String? avatarUrl
+  +String? gravatarId
+  +String? url
+  +String? htmlUrl
+  +String? followersUrl
+  +String? followingUrl
+  +String? gistsUrl
+  +String? starredUrl
+  +String? subscriptionsUrl
+  +String? organizationsUrl
+  +String? reposUrl
+  +String? eventsUrl
+  +String? receivedEventsUrl
+  +String? type
+  +bool? siteAdmin
+  +Map<String, dynamic> toJson()
+}
+
+class "flutter_github_gantt::Model::Issue.dart::Issue" {
+  +String? url
+  +String? repositoryUrl
+  +String? labelsUrl
+  +String? commentsUrl
+  +String? eventsUrl
+  +String? htmlUrl
+  +int? id
+  +String? nodeId
+  +int? number
+  +String? title
+  +Assignee? user
+  +List<Label>? labels
+  +String? state
+  +bool? locked
+  +Assignee? assignee
+  +List<Assignee>? assignees
+  +Milestone? milestone
+  +int? comments
+  +String? createdAt
+  +String? updatedAt
+  +String? closedAt
+  +String? authorAssociation
+  +String? activeLockReason
+  +String? body
+  +Reaction? reactions
+  +String? timelineUrl
+  +bool? performedViaGithubApp
+  -double _width
+  +bool selected
+  +bool processing
+  +double dragPosFactor
+  +int? draggingRemainingWidth
+  +int? remainingWidth
+  +double startPanChartPos
+  +DateTime? startTime
+  +DateTime? endTime
+  +List<int> dependencies
+  +double width
+  +void update()
+  +void toggleSelect()
+  +void toggleProcessing()
+  +Map<String, dynamic> toJson()
+}
+
+"flutter_github_gantt::Model::Issue.dart::Issue" o-- "flutter_github_gantt::Model::Assignees.dart::Assignee"
+"flutter_github_gantt::Model::Issue.dart::Issue" o-- "flutter_github_gantt::Model::Milestone.dart::Milestone"
+"flutter_github_gantt::Model::Issue.dart::Issue" o-- "flutter_github_gantt::Model::Reaction.dart::Reaction"
+"flutter::src::foundation::change_notifier.dart::ChangeNotifier" <|-- "flutter_github_gantt::Model::Issue.dart::Issue"
+
+class "flutter_github_gantt::Model::Label.dart::Label" {
+  +int? id
+  +String? nodeId
+  +String? url
+  +String? name
+  +String? color
+  +bool? isDefault
+  +String? description
+  +Map<String, dynamic> toJson()
+}
+
+class "flutter_github_gantt::Model::Milestone.dart::Milestone" {
+  +String? url
+  +String? htmlUrl
+  +String? labelsUrl
+  +int? id
+  +String? nodeId
+  +int? number
+  +String? title
+  +String? description
+  +Assignee? creator
+  +int? openIssues
+  +int? closedIssues
+  +String? state
+  +DateTime? createdAt
+  +DateTime? updatedAt
+  +DateTime? dueOn
+  +DateTime? closedAt
+  +Map<String, dynamic> toJson()
+}
+
+"flutter_github_gantt::Model::Milestone.dart::Milestone" o-- "flutter_github_gantt::Model::Assignees.dart::Assignee"
+
+class "flutter_github_gantt::Model::Permission.dart::Permission" {
+  +bool? admin
+  +bool? maintain
+  +bool? push
+  +bool? triage
+  +bool? pull
+  +Map<String, dynamic> toJson()
+}
+
+class "flutter_github_gantt::Model::RateLimit.dart::RateLimit" {
+  +Resources? resources
+  +Core? rate
+  +Map<String, dynamic> toJson()
+}
+
+"flutter_github_gantt::Model::RateLimit.dart::RateLimit" o-- "flutter_github_gantt::Model::RateLimit.dart::Resources"
+"flutter_github_gantt::Model::RateLimit.dart::RateLimit" o-- "flutter_github_gantt::Model::RateLimit.dart::Core"
+
+class "flutter_github_gantt::Model::RateLimit.dart::Resources" {
+  +Core? core
+  +Core? search
+  +Core? graphql
+  +Core? integrationManifest
+  +Core? sourceImport
+  +Core? codeScanningUpload
+  +Core? actionsRunnerRegistration
+  +Core? scim
+  +Map<String, dynamic> toJson()
+}
+
+"flutter_github_gantt::Model::RateLimit.dart::Resources" o-- "flutter_github_gantt::Model::RateLimit.dart::Core"
+
+class "flutter_github_gantt::Model::RateLimit.dart::Core" {
+  +int? limit
+  +int? used
+  +int? remaining
+  +int? reset
+  +Map<String, dynamic> toJson()
+}
+
+class "flutter_github_gantt::Model::Reaction.dart::Reaction" {
+  +String? url
+  +int? totalCount
+  +int? plusOne
+  +int? minusOne
+  +int? laugh
+  +int? hooray
+  +int? confused
+  +int? heart
+  +int? rocket
+  +int? eyes
+  +Map<String, dynamic> toJson()
+}
+
+class "flutter_github_gantt::Model::User.dart::User" {
+  +String? name
+  +String? login
+  +String? email
+}
+
+class "flutter_github_gantt::View::About.dart::About" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::About.dart::About"
+
+class "flutter_github_gantt::View::About.dart::UsageItem" {
+  +String title
+  +Core limitInfo
+  +bool showLimit
+  +bool showUsed
+  +bool showRemaining
+  +bool showReset
+  +Widget build()
+}
+
+"flutter_github_gantt::View::About.dart::UsageItem" o-- "flutter_github_gantt::Model::RateLimit.dart::Core"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::About.dart::UsageItem"
+
+class "flutter_github_gantt::View::ChartBars.dart::DependencyLine" {
+  +Issue issue
+  +List<int> depIssuesNumbers
+  +List<Issue> allIssue
+  +void paint()
+  +bool shouldRepaint()
+}
+
+"flutter_github_gantt::View::ChartBars.dart::DependencyLine" o-- "flutter_github_gantt::Model::Issue.dart::Issue"
+"flutter::src::rendering::custom_paint.dart::CustomPainter" <|-- "flutter_github_gantt::View::ChartBars.dart::DependencyLine"
+
+class "flutter_github_gantt::View::ChartBars.dart::ChartBars" {
+  +List<Issue> data
+  +Color color
+  +GanttChartController gantChartController
+  +BoxConstraints constraints
+  -dynamic _handleDrag()
+  +Widget build()
+}
+
+"flutter_github_gantt::View::ChartBars.dart::ChartBars" o-- "dart::ui::Color"
+"flutter_github_gantt::View::ChartBars.dart::ChartBars" o-- "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartController"
+"flutter_github_gantt::View::ChartBars.dart::ChartBars" o-- "flutter::src::rendering::box.dart::BoxConstraints"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::ChartBars.dart::ChartBars"
+
+class "flutter_github_gantt::View::ChartGrid.dart::ChartGrid" {
+  +Widget build()
+}
+
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::ChartGrid.dart::ChartGrid"
+
+class "flutter_github_gantt::View::ChartHeader.dart::ChartHeader" {
+  +Color color
+  +Widget build()
+}
+
+"flutter_github_gantt::View::ChartHeader.dart::ChartHeader" o-- "dart::ui::Color"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::ChartHeader.dart::ChartHeader"
+
+class "flutter_github_gantt::View::GanttChart.dart::GanttChart" {
+  +List<Issue> userData
+  +BuildContext context
+  +Color color
+  +Widget build()
+}
+
+"flutter_github_gantt::View::GanttChart.dart::GanttChart" o-- "flutter::src::widgets::framework.dart::BuildContext"
+"flutter_github_gantt::View::GanttChart.dart::GanttChart" o-- "dart::ui::Color"
+"flutter::src::widgets::framework.dart::StatelessWidget" <|-- "flutter_github_gantt::View::GanttChart.dart::GanttChart"
+
+class "flutter_github_gantt::View::NewIssueDialog.dart::NewIssueDialog" {
+  +List<Assignee>? assignees
+  +List<Label>? labels
+  +List<Milestone>? milestones
+  +Issue? issue
+  +_NewIssueDialogState createState()
+}
+
+"flutter_github_gantt::View::NewIssueDialog.dart::NewIssueDialog" o-- "flutter_github_gantt::Model::Issue.dart::Issue"
+"flutter::src::widgets::framework.dart::StatefulWidget" <|-- "flutter_github_gantt::View::NewIssueDialog.dart::NewIssueDialog"
+
+class "flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState" {
+  -GlobalKey<FormState> _formKey
+  -TextEditingController _titleController
+  -TextEditingController _bodyController
+  -List<Assignee> _selAssignees
+  -List<Label> _selLabels
+  -List<int> _selDepIssues
+  -Milestone? _selMilestone
+  -DateTimeRange? _periodoDaTarefa
+  -bool _haveTiming
+  -bool _isClosed
+  +void initState()
+  +void selectPeriodo()
+  +Widget build()
+}
+
+"flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState" o-- "flutter::src::widgets::framework.dart::GlobalKey<FormState>"
+"flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState" o-- "flutter::src::widgets::editable_text.dart::TextEditingController"
+"flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState" o-- "flutter_github_gantt::Model::Milestone.dart::Milestone"
+"flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState" o-- "flutter::src::material::date.dart::DateTimeRange"
+"flutter::src::widgets::framework.dart::State" <|-- "flutter_github_gantt::View::NewIssueDialog.dart::_NewIssueDialogState"
+
+
+@enduml

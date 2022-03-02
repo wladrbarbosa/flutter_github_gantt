@@ -249,7 +249,7 @@ class GanttChart extends StatelessWidget {
                           physics: ganttChartValue.isPanStartActive || ganttChartValue.isPanEndActive || ganttChartValue.isPanMiddleActive ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
                           child: Stack(
                             children: [
-                              Container(
+                              SizedBox(
                                 width: ganttChartValue.calculateNumberOfDaysBetween(ganttChartValue.fromDate!, ganttChartValue.toDate!).length * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen!,
                                 child: Listener(
                                   onPointerSignal: (pointerSignal){
@@ -286,46 +286,6 @@ class GanttChart extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              /*SingleChildScrollView(
-                                controller: ganttChartValue.chartController,
-                                physics: ganttChartValue.isAltPressed ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
-                                child: Container(
-                                  width: ganttChartValue.calculateNumberOfDaysBetween(ganttChartValue.fromDate!, ganttChartValue.toDate!).length * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen!,
-                                  height: (userData.length * 34) + 34 + (MediaQuery.of(context).size.height - (userData.length * 34) + 34).clamp(0, double.infinity),
-                                  child: Stack(
-                                      fit: StackFit.loose,
-                                      children: <Widget>[
-                                      Listener(
-                                        onPointerSignal: (pointerSignal){
-                                          if(pointerSignal is PointerScrollEvent && ganttChartValue.isAltPressed){
-                                            if (ganttChartValue.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) {
-                                              double percent = ganttChartValue.horizontalController.position.pixels * 100 / (ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length);
-                                              ganttChartValue.viewRangeToFitScreen = ganttChartValue.viewRangeToFitScreen! + pointerSignal.scrollDelta.dy.sign.toInt();
-
-                                              if (pointerSignal.scrollDelta.dy.sign < 0) {
-                                                ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                                ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
-                                              }
-                                              else {
-                                                ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                                ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
-                                              }
-
-                                              ganttChartValue.update();
-                                            }
-                                          }
-                                        },
-                                        onPointerDown: (event) async => await _onPointerDown(event),
-                                        child: ChartGrid()
-                                      ),
-                                      Container(
-                                        margin: EdgeInsets.only(top: 30.0),
-                                        child: ChartBars(data: userData, color: color, chartAreaWidth: constraints.biggest.width),
-                                      ),
-                                    ]
-                                  ),
-                                ),
-                              ),*/
                               ChartHeader(color: color),
                             ],
                           )

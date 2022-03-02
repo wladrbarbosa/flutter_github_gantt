@@ -47,6 +47,12 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
     GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
     GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     chartScrollListener();
+    GanttChartController.instance.horizontalController.addListener(() {
+      GanttChartController.instance.lastHorizontalPos = GanttChartController.instance.horizontalController.position.pixels;
+    });
+    GanttChartController.instance.chartController.addListener(() {
+      GanttChartController.instance.lastVerticalPos = GanttChartController.instance.chartController.position.pixels;
+    });
   }
 
   @override
@@ -76,8 +82,10 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
             future: GanttChartController.instance.issueListFuture,
             builder: (issuesContext, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasData)
+                if (snapshot.hasData) {
+                  GanttChartController.instance.rememberScrollPositions();
                   return GanttChart(snapshot.data!, issuesContext, Colors.blueAccent);
+                }
                 else
                   return Container(
                     child: Column(

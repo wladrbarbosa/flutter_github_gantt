@@ -180,8 +180,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         flex: 2,
                         child: TextButton(
                           onPressed: () {
-                            GanttChartController.instance.gitHub!.refreshIssuesList = true;
-                            GanttChartController.instance.repo!.update();
+                            GanttChartController.instance.gitHub!.reloadIssues();
                           },
                           child: Text(
                             'Atualizar',

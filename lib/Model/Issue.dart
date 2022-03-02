@@ -41,6 +41,7 @@ class Issue extends ChangeNotifier {
     this.remainingWidth,
     this.startTime,
     this.endTime,
+    this.dependencies = const [],
   });
 
   String? url;
@@ -79,6 +80,7 @@ class Issue extends ChangeNotifier {
   double startPanChartPos = 0;
   DateTime? startTime = DateTime.now();
   DateTime? endTime = DateTime.now();
+  List<int> dependencies = [];
 
   double get width => _width;
   set width(double value) {

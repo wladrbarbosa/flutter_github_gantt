@@ -62,6 +62,8 @@ class GanttChartController extends ChangeNotifier {
   Future<List<Label>>? labelsListFuture;
   Future<List<Milestone>>? milestoneListFuture;
   RateLimit? rateLimit;
+  double lastVerticalPos = 0;
+  double lastHorizontalPos = 0;
   // Ao tocar com botão direito na grid, se for espaço vazio seta -1
   // senão seta o indice da issue abaixo do ponteiro/toque
   int contextIssueIndex = -1;
@@ -73,6 +75,15 @@ class GanttChartController extends ChangeNotifier {
   Color randomColorGenerator() {
     Random? r = new Random();
     return Color.fromRGBO(r.nextInt(256), r.nextInt(256), r.nextInt(256), 0.75);
+  }
+
+  void rememberScrollPositions() {
+    try {
+      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.lastHorizontalPos);
+      GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.lastVerticalPos);
+    } catch (e) {
+      Future.delayed(Duration(milliseconds: 100), rememberScrollPositions);
+    }
   }
 
   double get issuesListWidth => _issuesListWidth;

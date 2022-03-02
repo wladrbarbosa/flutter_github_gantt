@@ -35,8 +35,9 @@ dependencies:
       ref: v2.1.0
   universal_html: ^2.0.8
   shared_preferences: ^2.0.13
-  url_launcher: ^6.0.18
+  url_launcher: ^6.0.20
   multi_select_flutter: ^4.0.0
+  dcdg: ^4.0.1
 
 dev_dependencies:
   flutter_test:

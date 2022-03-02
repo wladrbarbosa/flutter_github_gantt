@@ -33,6 +33,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
   late TextEditingController _bodyController;
   List<Assignee> _selAssignees = [];
   List<Label> _selLabels = [];
+  List<int> _selDepIssues = [];
   Milestone? _selMilestone;
   DateTimeRange? _periodoDaTarefa = DateTimeRange(start: DateTime.now(), end: DateTime.now());
   bool _haveTiming = false;
@@ -49,6 +50,8 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
       _selLabels = widget.issue!.labels!;
       _selMilestone = widget.issue!.milestone;
       _isClosed = widget.issue!.state == 'closed';
+      _selDepIssues = widget.issue!.dependencies;
+      
       _periodoDaTarefa = DateTimeRange(
         start: DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: ).*').stringMatch(widget.issue!.body!)!),
         end: DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: ).*').stringMatch(widget.issue!.body!)!),
@@ -324,6 +327,66 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                       ),
                     ),
                   ),
+                  Listener(
+                    onPointerUp: (details) async {
+                      await showDialog(
+                        context: context,
+                        builder: (ctx) {
+                          return  Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 400.0,
+                              vertical: 100.0,
+                            ),
+                            child: MultiSelectDialog<int>(
+                              cancelText: Text(
+                                'Cancelar'
+                              ),
+                              confirmText: Text(
+                                'Confirmar'
+                              ),
+                              searchHint: 'Pesquisar',
+                              title: Text('Pesquisar'),
+                              selectedColor: Theme.of(context).primaryColor,
+                              unselectedColor: Colors.white,
+                              itemsTextStyle: TextStyle(color: Colors.white),
+                              checkColor: Theme.of(context).primaryColor,
+                              selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
+                              items: GanttChartController.instance.issueList!.map<MultiSelectItem<int>>((e) {
+                                return MultiSelectItem<int>(
+                                  e.number!,
+                                  '${e.number!} - ${e.title!}',
+                                );
+                              }).toList(),
+                              initialValue: _selDepIssues,
+                              onConfirm: (values) {
+                                setState(() {
+                                  _selDepIssues = values;
+                                });
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                      height: 40,
+                      color: Colors.transparent,
+                      child: _selDepIssues.length > 0 ? MultiSelectChipDisplay<int>(
+                        height: 40,
+                        scroll: true,
+                        items: _selDepIssues.map<MultiSelectItem<int>>((e) {
+                          return MultiSelectItem<int>(
+                            e,
+                            e.toString(),
+                          );
+                        }).toList(),
+                      ) : Center(
+                        child: Text(
+                          'Dependências'
+                        ),
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     child: ElevatedButton(
@@ -336,7 +399,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                           String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : DateTime.now())}\n'+
                             'due_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : DateTime.now())}\n'+
                             'progress: 0\n'+
-                            'parent: 0\n```${_haveTiming ? '' : '\n\n'}';
+                            'parent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
 
                           if (widget.issue != null) {
                             await GanttChartController.instance.gitHub!.updateIssue(
@@ -346,6 +409,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                               _selMilestone == null ? null : _selMilestone!.number,
                               _selAssignees.map<String>((e) => e.login!).toList(),
                               _selLabels.map<String>((e) => e.name!).toList(),
+                              _selDepIssues,
                               isClosed: _isClosed,
                             );
 

@@ -168,6 +168,11 @@ class GitHubAPI {
           Issue temp = Issue.fromJson(issuesList[i]);
           temp.startTime = startTime;
           temp.endTime = endTime;
+          String? parsedParent = RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(issuesList[i]['body']).fold('', (previousValue, el) => '$previousValue${el.group(0)}');
+          
+          if (parsedParent != null && parsedParent != '')
+            temp.dependencies = parsedParent.replaceFirst(RegExp(r',$', multiLine: true), '').split(',').map<int>((e) => int.parse(e)).toList();
+          
           responseLits.add(temp);
         }
         pagesLoaded++;
@@ -215,7 +220,7 @@ class GitHubAPI {
     return responseList;
   }
 
-  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<String> assignees, List<String> labels, {bool isClosed = false}) async {
+  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<String> assignees, List<String> labels, List<int> dependencies, {bool isClosed = false}) async {
     GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
     gitHubRequest<Map<String, dynamic>>(
       '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}?time=${DateTime.now()}',
@@ -230,6 +235,7 @@ class GitHubAPI {
       }
     ).then((value) {
       GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
+      GanttChartController.instance.selectedIssues[0]!.dependencies = dependencies;
       GanttChartController.instance.selectedIssues[0]!.state = Issue.fromJson(value).state;
       GanttChartController.instance.selectedIssues[0]!.update();
     });
