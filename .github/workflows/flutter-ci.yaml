@@ -5,7 +5,7 @@ name: Flutter CI
 on:
   create:
     tags:
-      - "v*"
+      - "*"
 
 jobs:
   build-android:
@@ -178,8 +178,10 @@ jobs:
         path: build/windows/runner/Release/
   create-release:
       needs: [build-windows, build-web, build-ios, build-android]
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "release-windows.zip,release-web.zip,release-android.zip,release-ios.zip"
-        omitBody: true
-        token: ${{ secrets.GITHUB_TOKEN }}
+      runs-on: ubuntu-latest
+      steps:
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release-windows.zip,release-web.zip,release-android.zip,release-ios.zip"
+          omitBody: true
+          token: ${{ secrets.GITHUB_TOKEN }}
