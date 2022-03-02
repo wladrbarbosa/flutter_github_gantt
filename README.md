@@ -6,6 +6,8 @@ This application aims to be a facilitator for those who want to organize themsel
 
 ![image](https://user-images.githubusercontent.com/10834873/132966421-87df65b0-acaa-400d-b907-13b4a55b2f63.png)
 
+![image](https://user-images.githubusercontent.com/10834873/156359073-6aa30884-37b4-4252-9984-611a3f8d59f1.png)
+
 ## Installation
 
 1. Install Flutter 2.10.1 SDK
