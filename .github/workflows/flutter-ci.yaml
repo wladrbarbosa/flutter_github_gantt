@@ -48,8 +48,15 @@ jobs:
     # Upload generated apk to the artifacts.
     - uses: actions/upload-artifact@v2
       with:
-        name: release-android
+        name: release-android.zip
         path: build/app/outputs/apk/release/app-release.apk
+    - uses: papeloto/action-zip@v1
+        with:
+          files: build/app/outputs/apk/release/app-release.apk
+          dest: release-android.zip
+    - uses: softprops/action-gh-release@v1
+        with:
+          files: release-android.zip
   build-ios:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
@@ -89,8 +96,15 @@ jobs:
     # Upload generated apk to the artifacts.
     - uses: actions/upload-artifact@v2
       with:
-        name: release-ios
+        name: release-ios.zip
         path: build/ios/ipa/
+    - uses: papeloto/action-zip@v1
+        with:
+          files: build/ios/ipa/
+          dest: release-ios.zip
+    - uses: softprops/action-gh-release@v1
+        with:
+          files: release-ios.zip
   build-web:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
@@ -135,8 +149,15 @@ jobs:
     # Upload generated apk to the artifacts.
     - uses: actions/upload-artifact@v2
       with:
-        name: release-web
+        name: release-web.zip
         path: build/web/
+    - uses: papeloto/action-zip@v1
+        with:
+          files: build/web/
+          dest: release-web.zip
+    - uses: softprops/action-gh-release@v1
+        with:
+          files: release-web.zip
   build-windows:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     # This job will run on ubuntu virtual machine
@@ -176,18 +197,12 @@ jobs:
     # Upload generated apk to the artifacts.
     - uses: actions/upload-artifact@v2
       with:
-        name: release-windows
+        name: release-windows.zip
         path: build/windows/runner/Release/
-  create-release:
-    permissions:
-      contents: write
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-    needs: [build-windows, build-web, build-ios, build-android]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "release-windows.zip,release-web.zip,release-android.zip,release-ios.zip"
-        omitBody: true
-        token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: papeloto/action-zip@v1
+        with:
+          files: build/windows/runner/Release/
+          dest: release-windows.zip
+    - uses: softprops/action-gh-release@v1
+        with:
+          files: release-windows.zip
