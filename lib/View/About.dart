@@ -36,7 +36,7 @@ class About extends StatelessWidget {
                           )
                         ),
                         TextSpan(
-                          text: 'Versão: 1.2.0',
+                          text: 'Versão: v1.3.11',
                           style: TextStyle(
                             color: Theme.of(context).primaryColor,
                             fontWeight: FontWeight.w500,
