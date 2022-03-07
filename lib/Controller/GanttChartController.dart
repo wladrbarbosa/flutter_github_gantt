@@ -23,7 +23,7 @@ enum PanType {
 }
 
 class GanttChartController extends ChangeNotifier {
-  double _issuesListWidth = 0;
+  double _issuesListWidth = 520;
   int? viewRangeOnScale = 0;
   int? viewRangeToFitScreen = 22;
   List<DateTime>? viewRange;
