@@ -105,7 +105,11 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     if (GanttChartController.instance.rootContext == null)
-      GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width / 4);
+      GanttChartController.instance.setContext(context, 520);
+
+    if (MediaQuery.of(context).size.width < GanttChartController.instance.issuesListWidth)
+      GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width);
+
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -119,134 +123,158 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         actions: [
           Container(
-            width: MediaQuery.of(context).size.width / 2,
+            width: MediaQuery.of(context).size.width / 2.45,
             margin: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    child: TextField(
-                      controller: _userToken,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'Personal token'
-                      ),
-                      onChanged: (value) async {
-                        await GanttChartController.instance.prefs!.setString('token', value);
-                        GanttChartController.instance.gitHub!.userToken = value;
-                        _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
-                      },
+            child: Container(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      GanttChartController.instance.gitHub!.reloadIssues();
+                    },
+                    child: Text(
+                      'Atualizar',
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
-                ),
-                Expanded(
-                  flex: 7,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container()
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: DropdownButton<int>(
-                          isExpanded: true,
-                          value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
-                          onChanged: (newValue) {
-                            setState(() {
-                              GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
-                              GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
-                            });
-                          },
-                          hint: Text(
-                            'Selecione o repositório...',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
-                            child: Text(
-                              e.name!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            value: e.id,
-                          )).toList()
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: TextButton(
-                          onPressed: () {
-                            GanttChartController.instance.gitHub!.reloadIssues();
-                          },
-                          child: Text(
-                            'Atualizar',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: TextButton(
-                          onPressed: () async {
-                            await showDialog(
-                              context: context,
-                              builder: (NewIssueDialogContext) {
-                                return About();
-                              }
-                            );
-                          },
-                          child: Icon(
-                            Icons.settings,
-                          ),
-                        ),
-                      ),
-                    ],
+                  TextButton(
+                    onPressed: () async {
+                      await showDialog(
+                        context: context,
+                        builder: (NewIssueDialogContext) {
+                          return About();
+                        }
+                      );
+                    },
+                    child: Icon(
+                      Icons.settings,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: FutureBuilder<User?>(
-          future: _user,
-          builder: (userContext, userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.done) {
-              if (userSnapshot.hasData)
-                return ChangeNotifierProvider<RepoController?>.value(
-                  value: GanttChartController.instance.repo,
-                  child: Consumer<RepoController?>(
-                    builder: (repoContext, repoValue, child) {
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: GanttChartApp(
-                          repo: repoValue != null ? repoValue.name : '',
-                          token: _userToken.text,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0
+            ),
+            child: Wrap(
+              spacing: 20,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Wrap(
+                  spacing: 20,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Container(
+                      child: Text(
+                        'Token:'
+                      ),
+                    ),
+                    Container(
+                      width: 250,
+                      child: TextFormField(
+                        controller: _userToken,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: 'Personal token'
+                        ),
+                        onChanged: (value) async {
+                          await GanttChartController.instance.prefs!.setString('token', value);
+                          GanttChartController.instance.gitHub!.userToken = value;
+                          _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 20,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Container(
+                      child: Text(
+                        'Repo:'
+                      ),
+                    ),
+                    Container(
+                      width: 250,
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
+                        onChanged: (newValue) {
+                          setState(() {
+                            GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
+                            GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
+                          });
+                        },
+                        hint: Text(
+                          'Selecione o repositório...',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
+                          child: Text(
+                            e.name!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          value: e.id,
+                        )).toList()
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Center(
+              // Center is a layout widget. It takes a single child and positions it
+              // in the middle of the parent.
+              child: FutureBuilder<User?>(
+                future: _user,
+                builder: (userContext, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.done) {
+                    if (userSnapshot.hasData)
+                      return ChangeNotifierProvider<RepoController?>.value(
+                        value: GanttChartController.instance.repo,
+                        child: Consumer<RepoController?>(
+                          builder: (repoContext, repoValue, child) {
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: GanttChartApp(
+                                repo: repoValue != null ? repoValue.name : '',
+                                token: _userToken.text,
+                              ),
+                            );
+                          }
                         ),
                       );
-                    }
-                  ),
-                );
-              else
-                return Center(
-                  child: Text(
-                    'Token inexistente ou incorreta'
-                  ),
-                );
-            }
-            else
-              return Center(
-                child: CircularProgressIndicator()
-              );
-          }
-        ),
+                    else
+                      return Center(
+                        child: Text(
+                          'Token inexistente ou incorreta'
+                        ),
+                      );
+                  }
+                  else
+                    return Center(
+                      child: CircularProgressIndicator()
+                    );
+                }
+              ),
+            ),
+          ),
+        ],
       ),// This trailing comma makes auto-formatting nicer for build methods.
     );
   }

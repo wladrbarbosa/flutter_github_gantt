@@ -48,6 +48,8 @@ class ChartGrid extends StatelessWidget {
         }
       },
       onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, context),
+      onPointerUp: (event) async => await GanttChartController.instance.onPointerUp(event, context),
+      onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
       child: Row(
         children: gridColumns,
       ),

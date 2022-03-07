@@ -8,16 +8,17 @@ class About extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    MediaQueryData mediaQuery = MediaQuery.of(context);
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 200.0,
-        horizontal: 600.0,
+      padding: EdgeInsets.symmetric(
+        vertical: mediaQuery.size.height / 4,
+        horizontal: mediaQuery.size.width / 4,
       ),
       child: Center(
         child: Scaffold(
           body: SingleChildScrollView(
             child: Container(
-              width: 400,
               padding: EdgeInsets.all(20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

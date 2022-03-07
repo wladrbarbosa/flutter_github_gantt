@@ -23,7 +23,8 @@ enum PanType {
 }
 
 class GanttChartController extends ChangeNotifier {
-  double _issuesListWidth = 400;
+  double _issuesListWidth = 0;
+  int? viewRangeOnScale = 0;
   int? viewRangeToFitScreen = 22;
   List<DateTime>? viewRange;
   Color? userColor;
@@ -67,6 +68,7 @@ class GanttChartController extends ChangeNotifier {
   // Ao tocar com botão direito na grid, se for espaço vazio seta -1
   // senão seta o indice da issue abaixo do ponteiro/toque
   int contextIssueIndex = -1;
+  DateTime? onPointerDownTime;
 
   // torna esta classe singleton
   GanttChartController._privateConstructor();
@@ -93,6 +95,8 @@ class GanttChartController extends ChangeNotifier {
   }
 
   Future<void> onPointerDown(PointerDownEvent event, BuildContext context) async {
+    onPointerDownTime = DateTime.now();
+
     Future.delayed(Duration(milliseconds: 50), () async {
       if (contextIssueIndex != -1) {
         await onIssueRightButton(context, event);
@@ -105,9 +109,22 @@ class GanttChartController extends ChangeNotifier {
     });
   }
 
-  void _onGridPointerDown(PointerDownEvent event, BuildContext context) {
+  Future<void> onPointerUp(PointerUpEvent event, BuildContext context) async {
+    Future.delayed(Duration(milliseconds: 50), () async {
+      if (contextIssueIndex != -1) {
+        await onIssueRightButton(context, event);
+      }
+      else {
+        _onGridPointerDown(event, context);
+      }
+
+      contextIssueIndex = -1;
+    });
+  }
+
+  void _onGridPointerDown(PointerEvent event, BuildContext context) {
     // Check if right mouse button clicked
-    if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+    if ((event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) || (onPointerDownTime != null && DateTime.now().difference(onPointerDownTime!).inMilliseconds >= 300)) {
       RenderBox overlay = Overlay.of(context)!.context.findRenderObject() as RenderBox;
       showMenu<int>(
         context: context,
@@ -177,9 +194,11 @@ class GanttChartController extends ChangeNotifier {
     return;
   }
 
-  Future<void> onIssueRightButton(BuildContext context, PointerDownEvent event) async {
+  Future<void> onIssueRightButton(BuildContext context, [PointerEvent? event, LongPressEndDetails? longPressDetails]) async {
     // Check if right mouse button clicked
-    if (selectedIssues.length > 0 && event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) {
+    if (selectedIssues.length > 0 && ((event != null && event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) || longPressDetails != null)) {
+      onPointerDownTime = null;
+
       List<PopupMenuEntry<int>> items = [
         PopupMenuItem(child: Text('Excluir tarefas selecionadas'), value: 2),
         PopupMenuItem(child: Text('Inverter estado (aberta/fechada) das tarefas selecionadas'), value: 3),
@@ -193,7 +212,7 @@ class GanttChartController extends ChangeNotifier {
         context: context,
         items: items,
         position: RelativeRect.fromSize(
-          event.position & Size(48.0, 48.0),
+          (event != null ? event.position : longPressDetails!.globalPosition) & Size(48.0, 48.0),
           overlay.size
         )
       ).then((menuItem) async {

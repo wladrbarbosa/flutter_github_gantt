@@ -38,6 +38,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
   DateTimeRange? _periodoDaTarefa = DateTimeRange(start: DateTime.now(), end: DateTime.now());
   bool _haveTiming = false;
   bool _isClosed = false;
+  bool touchMoves = false;
 
   @override
   void initState() {
@@ -61,7 +62,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
     super.initState();
   }
 
-  void selectPeriodo() async {
+  void selectPeriodo(MediaQueryData mediaQuery) async {
     DateTime today = DateTime.now();
                             
     DateTimeRange? periodo = await showDateRangePicker(
@@ -73,9 +74,9 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
       lastDate: DateTime(today.year + 100, today.month, today.day),
       builder: (context, child) {
         return Container(
-          margin: const EdgeInsets.symmetric(
-            horizontal: 400.0,
-            vertical: 100.0,
+          margin: EdgeInsets.symmetric(
+            horizontal: mediaQuery.size.width / 10,
+            vertical: mediaQuery.size.height / 10,
           ),
           child: child,
         );
@@ -93,10 +94,11 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
     MediaQueryData mediaQuery = MediaQuery.of(context);
 
     return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 400.0,
-        vertical: 100.0,
+      margin: EdgeInsets.symmetric(
+        horizontal: mediaQuery.size.width / 10,
+        vertical: mediaQuery.size.height / 10,
       ),
+      alignment: Alignment.center,
       child: SingleChildScrollView(
         child: Material(
           child: Padding(
@@ -123,13 +125,10 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   widget.issue != null ? Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Fechada?'
-                        ),
+                      Text(
+                        'Fechada?'
                       ),
                       Expanded(
-                        flex: 10,
                         child: Container(
                           alignment: Alignment.centerLeft,
                           child: Switch(
@@ -175,9 +174,13 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                     children: [
                       Expanded(
                         child: Listener(
-                          onPointerDown: (details) async {
-                            selectPeriodo();
+                          onPointerUp: (details) async {
+                            if (!touchMoves)
+                              selectPeriodo(mediaQuery);
+
+                            touchMoves = false;
                           },
+                          onPointerMove: (details) => touchMoves = true,
                           child: Container(
                             height: 40,
                             color: Colors.transparent,
@@ -191,9 +194,13 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                       ),
                       Expanded(
                         child: Listener(
-                          onPointerDown: (details) async {
-                            selectPeriodo();
+                          onPointerUp: (details) async {
+                            if (!touchMoves)
+                              selectPeriodo(mediaQuery);
+
+                            touchMoves = false;
                           },
+                          onPointerMove: (details) => touchMoves = true,
                           child: Container(
                             height: 40,
                             color: Colors.transparent,
@@ -209,45 +216,49 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      await showDialog(
-                        context: context,
-                        builder: (ctx) {
-                          return  Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 400.0,
-                              vertical: 100.0,
-                            ),
-                            child: MultiSelectDialog<Assignee>(
-                              cancelText: Text(
-                                'Cancelar'
+                      if (!touchMoves)
+                        await showDialog(
+                          context: context,
+                          builder: (ctx) {
+                            return  Container(
+                              margin: EdgeInsets.symmetric(
+                                horizontal: mediaQuery.size.width / 10,
+                                vertical: mediaQuery.size.height / 10,
                               ),
-                              confirmText: Text(
-                                'Confirmar'
+                              child: MultiSelectDialog<int>(
+                                cancelText: Text(
+                                  'Cancelar'
+                                ),
+                                confirmText: Text(
+                                  'Confirmar'
+                                ),
+                                selectedColor: Theme.of(context).primaryColor,
+                                unselectedColor: Colors.white,
+                                searchHint: 'Pesquisar',
+                                title: Text('Pesquisar'),
+                                itemsTextStyle: TextStyle(color: Colors.white),
+                                checkColor: Theme.of(context).primaryColor,
+                                selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
+                                items: widget.assignees!.map<MultiSelectItem<int>>((e) {
+                                  return MultiSelectItem<int>(
+                                    e.id!,
+                                    e.login!,
+                                  );
+                                }).toList(),
+                                initialValue: _selAssignees.map<int>((e) => e.id!).toList(),
+                                onConfirm: (values) {
+                                  setState(() {
+                                    _selAssignees = widget.assignees!.where((el) => values.contains(el.id)).toList();
+                                  });
+                                },
                               ),
-                              selectedColor: Theme.of(context).primaryColor,
-                              unselectedColor: Colors.white,
-                              searchHint: 'Pesquisar',
-                              title: Text('Pesquisar'),
-                              itemsTextStyle: TextStyle(color: Colors.white),
-                              checkColor: Theme.of(context).primaryColor,
-                              selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                              items: widget.assignees!.map<MultiSelectItem<Assignee>>((e) {
-                                return MultiSelectItem<Assignee>(
-                                  e,
-                                  e.login!,
-                                );
-                              }).toList(),
-                              initialValue: _selAssignees,
-                              onConfirm: (values) {
-                                setState(() {
-                                  _selAssignees = values;
-                                });
-                              },
-                            ),
-                          );
-                        },
-                      );
+                            );
+                          },
+                        );
+
+                      touchMoves = false;
                     },
+                    onPointerMove: (details) => touchMoves = true,
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
@@ -269,45 +280,49 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      await showDialog(
-                        context: context,
-                        builder: (ctx) {
-                          return  Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 400.0,
-                              vertical: 100.0,
-                            ),
-                            child: MultiSelectDialog<Label>(
-                              cancelText: Text(
-                                'Cancelar'
+                      if (!touchMoves)
+                        await showDialog(
+                          context: context,
+                          builder: (ctx) {
+                            return  Container(
+                              margin: EdgeInsets.symmetric(
+                                horizontal: mediaQuery.size.width / 10,
+                                vertical: mediaQuery.size.height / 10,
                               ),
-                              confirmText: Text(
-                                'Confirmar'
+                              child: MultiSelectDialog<int>(
+                                cancelText: Text(
+                                  'Cancelar'
+                                ),
+                                confirmText: Text(
+                                  'Confirmar'
+                                ),
+                                searchHint: 'Pesquisar',
+                                title: Text('Pesquisar'),
+                                selectedColor: Theme.of(context).primaryColor,
+                                unselectedColor: Colors.white,
+                                itemsTextStyle: TextStyle(color: Colors.white),
+                                checkColor: Theme.of(context).primaryColor,
+                                selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
+                                items: widget.labels!.map<MultiSelectItem<int>>((e) {
+                                  return MultiSelectItem<int>(
+                                    e.id!,
+                                    e.name!,
+                                  );
+                                }).toList(),
+                                initialValue: _selLabels.map<int>((e) => e.id!).toList(),
+                                onConfirm: (values) {
+                                  setState(() {
+                                    _selLabels = widget.labels!.where((el) => values.contains(el.id)).toList();
+                                  });
+                                },
                               ),
-                              searchHint: 'Pesquisar',
-                              title: Text('Pesquisar'),
-                              selectedColor: Theme.of(context).primaryColor,
-                              unselectedColor: Colors.white,
-                              itemsTextStyle: TextStyle(color: Colors.white),
-                              checkColor: Theme.of(context).primaryColor,
-                              selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                              items: widget.labels!.map<MultiSelectItem<Label>>((e) {
-                                return MultiSelectItem<Label>(
-                                  e,
-                                  e.name!,
-                                );
-                              }).toList(),
-                              initialValue: _selLabels,
-                              onConfirm: (values) {
-                                setState(() {
-                                  _selLabels = values;
-                                });
-                              },
-                            ),
-                          );
-                        },
-                      );
+                            );
+                          },
+                        );
+
+                      touchMoves = false;
                     },
+                    onPointerMove: (details) => touchMoves = true,
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
@@ -329,45 +344,49 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      await showDialog(
-                        context: context,
-                        builder: (ctx) {
-                          return  Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 400.0,
-                              vertical: 100.0,
-                            ),
-                            child: MultiSelectDialog<int>(
-                              cancelText: Text(
-                                'Cancelar'
+                      if (!touchMoves)
+                        await showDialog(
+                          context: context,
+                          builder: (ctx) {
+                            return  Container(
+                              margin: EdgeInsets.symmetric(
+                                horizontal: mediaQuery.size.width / 10,
+                                vertical: mediaQuery.size.height / 10,
                               ),
-                              confirmText: Text(
-                                'Confirmar'
+                              child: MultiSelectDialog<int>(
+                                cancelText: Text(
+                                  'Cancelar'
+                                ),
+                                confirmText: Text(
+                                  'Confirmar'
+                                ),
+                                searchHint: 'Pesquisar',
+                                title: Text('Pesquisar'),
+                                selectedColor: Theme.of(context).primaryColor,
+                                unselectedColor: Colors.white,
+                                itemsTextStyle: TextStyle(color: Colors.white),
+                                checkColor: Theme.of(context).primaryColor,
+                                selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
+                                items: GanttChartController.instance.issueList!.map<MultiSelectItem<int>>((e) {
+                                  return MultiSelectItem<int>(
+                                    e.number!,
+                                    '${e.number!} - ${e.title!}',
+                                  );
+                                }).toList(),
+                                initialValue: _selDepIssues,
+                                onConfirm: (values) {
+                                  setState(() {
+                                    _selDepIssues = values;
+                                  });
+                                },
                               ),
-                              searchHint: 'Pesquisar',
-                              title: Text('Pesquisar'),
-                              selectedColor: Theme.of(context).primaryColor,
-                              unselectedColor: Colors.white,
-                              itemsTextStyle: TextStyle(color: Colors.white),
-                              checkColor: Theme.of(context).primaryColor,
-                              selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                              items: GanttChartController.instance.issueList!.map<MultiSelectItem<int>>((e) {
-                                return MultiSelectItem<int>(
-                                  e.number!,
-                                  '${e.number!} - ${e.title!}',
-                                );
-                              }).toList(),
-                              initialValue: _selDepIssues,
-                              onConfirm: (values) {
-                                setState(() {
-                                  _selDepIssues = values;
-                                });
-                              },
-                            ),
-                          );
-                        },
-                      );
+                            );
+                          },
+                        );
+
+                      touchMoves = false;
                     },
+                    onPointerMove: (details) => touchMoves = true,
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
@@ -407,8 +426,8 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                               _titleController.text,
                               metaInfo + _bodyController.text,
                               _selMilestone == null ? null : _selMilestone!.number,
-                              _selAssignees.map<String>((e) => e.login!).toList(),
-                              _selLabels.map<String>((e) => e.name!).toList(),
+                              _selAssignees,
+                              _selLabels,
                               _selDepIssues,
                               isClosed: _isClosed,
                             );

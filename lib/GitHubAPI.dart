@@ -220,7 +220,7 @@ class GitHubAPI {
     return responseList;
   }
 
-  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<String> assignees, List<String> labels, List<int> dependencies, {bool isClosed = false}) async {
+  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<Assignee> assignees, List<Label> labels, List<int> dependencies, {bool isClosed = false}) async {
     GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
     gitHubRequest<Map<String, dynamic>>(
       '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}?time=${DateTime.now()}',
@@ -229,13 +229,15 @@ class GitHubAPI {
         'title': title,
         'body': body,
         'milestone': milestone,
-        'assignees': assignees,
-        'labels': labels,
+        'assignees': assignees.map<String>((e) => e.login!).toList(),
+        'labels': labels.map<String>((e) => e.name!).toList(),
         'state': isClosed ? 'closed' : 'open'
       }
     ).then((value) {
       GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
       GanttChartController.instance.selectedIssues[0]!.dependencies = dependencies;
+      GanttChartController.instance.selectedIssues[0]!.assignees = assignees;
+      GanttChartController.instance.selectedIssues[0]!.labels = labels;
       GanttChartController.instance.selectedIssues[0]!.state = Issue.fromJson(value).state;
       GanttChartController.instance.selectedIssues[0]!.update();
     });

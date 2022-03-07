@@ -78,7 +78,7 @@ class GanttChart extends StatelessWidget {
                                     ),
                                   ),
                                   Expanded(
-                                    flex: 2,
+                                    flex: 4,
                                     child: Text(
                                       'Título'
                                     ),
@@ -105,8 +105,14 @@ class GanttChart extends StatelessWidget {
                                           onTap: () {
                                             ganttChartValue.issueSelect(issuesValue, userData);
                                           },
+                                          onLongPressEnd: (event) {
+                                            GanttChartController.instance.onIssueRightButton(context, null, event);
+                                          },
                                           child: Listener(
                                             onPointerDown: (event) async {
+                                              await ganttChartValue.onIssueRightButton(issuesContext, event);
+                                            },
+                                            onPointerUp: (event) async {
                                               await ganttChartValue.onIssueRightButton(issuesContext, event);
                                             },
                                             child: Container(
@@ -140,7 +146,7 @@ class GanttChart extends StatelessWidget {
                                                     ),
                                                   ),
                                                   Expanded(
-                                                    flex: 3,
+                                                    flex: 4,
                                                     child: Container(
                                                       alignment: Alignment.centerLeft,
                                                       child: Text(
@@ -236,10 +242,29 @@ class GanttChart extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  flex: 9,
                   child: GestureDetector(
                     onTap: () {
                       ganttChartValue.removeIssueSelection();
+                    },
+                    onScaleStart: (details) {
+                      GanttChartController.instance.viewRangeOnScale = GanttChartController.instance.viewRangeToFitScreen;
+                    },
+                    onScaleUpdate: (details) {
+                      if (GanttChartController.instance.viewRangeToFitScreen! > 1 || details.scale < 1) {
+                        double percent = GanttChartController.instance.horizontalController.position.pixels * 100 / (GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length);
+                        GanttChartController.instance.viewRangeToFitScreen = (GanttChartController.instance.viewRangeOnScale! ~/ details.scale).toInt();
+
+                        if (details.scale > 1) {
+                          GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
+                          GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+                        }
+                        else {
+                          GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
+                          GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+                        }
+
+                        GanttChartController.instance.update();
+                      }
                     },
                     child: LayoutBuilder(
                       builder: (chartContext, constraints) {
@@ -272,6 +297,8 @@ class GanttChart extends StatelessWidget {
                                     }
                                   },
                                   onPointerDown: (event) async => await ganttChartValue.onPointerDown(event, chartContext),
+                                  onPointerUp: (event) async => await ganttChartValue.onPointerUp(event, chartContext),
+                                  onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
                                   child: Stack(
                                     fit: StackFit.loose,
                                     children: <Widget>[
