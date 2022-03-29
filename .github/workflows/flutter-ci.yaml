@@ -210,3 +210,51 @@ jobs:
     - uses: softprops/action-gh-release@v1
       with:
         files: release-windows.zip
+  build-linux:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    # This job will run on ubuntu virtual machine
+    runs-on: ubuntu-latest
+    steps:
+    # Setup ssh key for some repositories
+    - uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH }}
+        name: id_ed25519
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+        
+    # Setup Java environment in order to build the Android app.
+    - uses: actions/checkout@v2
+
+    # Setup the flutter environment.
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable' # 'dev', 'alpha', default to: 'stable'
+        flutter-version: '2.10.x' # you can also specify exact version of flutter
+    
+    # Get flutter dependencies.
+    - run: flutter pub get
+    
+    # Check for any formatting issues in the code.
+    #- run: flutter format --set-exit-if-changed .
+    
+    # Statically analyze the Dart code for any errors.
+    #- run: flutter analyze .
+    
+    # Run widget tests for our flutter project.
+    #- run: flutter test
+    
+    # Build apk.
+    - run: flutter build linux
+    
+    # Upload generated apk to the artifacts.
+    - uses: actions/upload-artifact@v2
+      with:
+        name: release-linux.zip
+        path: build/linux/x64/release/bundle/
+    - uses: papeloto/action-zip@v1
+      with:
+        files: build/linux/x64/release/bundle/
+        dest: release-linux.zip
+    - uses: softprops/action-gh-release@v1
+      with:
+        files: release-linux.zip
