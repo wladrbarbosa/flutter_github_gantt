@@ -231,6 +231,8 @@ jobs:
         channel: 'stable' # 'dev', 'alpha', default to: 'stable'
         flutter-version: '2.10.x' # you can also specify exact version of flutter
     
+    # Installing dependency libraries
+    - run: sudo apt-get -y install clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
     # Get flutter dependencies.
     - run: flutter pub get
     
