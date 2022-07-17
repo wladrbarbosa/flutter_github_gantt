@@ -138,7 +138,7 @@ class Issue extends ChangeNotifier {
 		body = json['body'];
 		reactions = json['reactions'] != null ? Reaction.fromJson(json['reactions']) : null;
 		timelineUrl = json['timeline_url'];
-		performedViaGithubApp = json['performed_via_github_app'];
+		performedViaGithubApp = json['performed_via_github_app'] != null ? true : json['performed_via_github_app'];
 	}
 
 	Map<String, dynamic> toJson() {

@@ -25,7 +25,7 @@ enum PanType {
 class GanttChartController extends ChangeNotifier {
   double _issuesListWidth = 520;
   int? viewRangeOnScale = 0;
-  int? viewRangeToFitScreen = 22;
+  int? viewRangeToFitScreen = 20;
   List<DateTime>? viewRange;
   Color? userColor;
   double initX = 0;
@@ -45,7 +45,8 @@ class GanttChartController extends ChangeNotifier {
   bool isAltPressed = false;
   bool isShiftPressed = false;
   bool isCtrlPressed = false;
-  ScrollController chartController = ScrollController();
+  ScrollController chartBarsController = ScrollController();
+  ScrollController chartDependencyLinesController = ScrollController();
   ScrollController listController = ScrollController();
   BuildContext? rootContext;
   List<RepoController> reposList = [];
@@ -69,6 +70,7 @@ class GanttChartController extends ChangeNotifier {
   // senão seta o indice da issue abaixo do ponteiro/toque
   int contextIssueIndex = -1;
   DateTime? onPointerDownTime;
+  TextEditingController filterController = TextEditingController();
 
   // torna esta classe singleton
   GanttChartController._privateConstructor();
@@ -82,7 +84,7 @@ class GanttChartController extends ChangeNotifier {
   void rememberScrollPositions() {
     try {
       GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.lastHorizontalPos);
-      GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.lastVerticalPos);
+      GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.lastVerticalPos);
     } catch (e) {
       Future.delayed(const Duration(milliseconds: 100), rememberScrollPositions);
     }
@@ -332,7 +334,8 @@ class GanttChartController extends ChangeNotifier {
   initialize() {
     focus = FocusNode(debugLabel: 'Button');
     focus.requestFocus();
-    chartController = controllers.addAndGet();
+    chartBarsController = controllers.addAndGet();
+    chartDependencyLinesController = controllers.addAndGet();
     listController = controllers.addAndGet();
     userColor = randomColorGenerator();
     GanttChartController.instance.horizontalController.removeListener(onScrollChange);

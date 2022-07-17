@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Controller/gantt_chart_controller.dart';
+import '../controller/gantt_chart_controller.dart';
 
 class ChartGrid extends StatelessWidget {
   const ChartGrid({
@@ -36,11 +36,11 @@ class ChartGrid extends StatelessWidget {
 
             if (pointerSignal.scrollDelta.dy.sign < 0) {
               GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! / 2);
-              GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+              GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
             }
             else {
               GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! / 2);
-              GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+              GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
             }
 
             GanttChartController.instance.update();

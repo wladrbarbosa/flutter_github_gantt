@@ -52,8 +52,8 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
     GanttChartController.instance.horizontalController.addListener(() {
       GanttChartController.instance.lastHorizontalPos = GanttChartController.instance.horizontalController.position.pixels;
     });
-    GanttChartController.instance.chartController.addListener(() {
-      GanttChartController.instance.lastVerticalPos = GanttChartController.instance.chartController.position.pixels;
+    GanttChartController.instance.chartBarsController.addListener(() {
+      GanttChartController.instance.lastVerticalPos = GanttChartController.instance.chartBarsController.position.pixels;
     });
   }
 

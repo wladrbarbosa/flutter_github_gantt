@@ -3,6 +3,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/view/chart_bars.dart';
+import 'package:flutter_github_gantt/view/chart_bars_dependency_lines.dart';
 import 'package:flutter_github_gantt/view/chart_grid.dart';
 import 'package:flutter_github_gantt/view/chart_header.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +27,7 @@ class GanttChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<Issue> filteredUserData = [];
     GanttChartController.instance.nodeAttachment.reparent();
     //Only on web
     //document.onContextMenu.listen((event) => event.preventDefault());
@@ -57,6 +59,8 @@ class GanttChart extends StatelessWidget {
               return startOrder;
             }
           });
+
+          filteredUserData = userData.where((el) => el.title!.contains(GanttChartController.instance.filterController.text)).toList();
 
           return SizedBox(
             width: MediaQuery.of(ganttChartContext).size.width,
@@ -98,10 +102,10 @@ class GanttChart extends StatelessWidget {
                               child: ListView.builder(
                                 controller: ganttChartValue.listController,
                                 scrollDirection: Axis.vertical,
-                                itemCount: userData.length,
+                                itemCount: filteredUserData.length,
                                 itemBuilder: (context, index) {
                                   return ChangeNotifierProvider<Issue>.value(
-                                    value: userData[index],
+                                    value: filteredUserData[index],
                                     child: Consumer<Issue>(
                                       builder: (issuesContext, issuesValue, child) {
                                         return GestureDetector(
@@ -261,11 +265,11 @@ class GanttChart extends StatelessWidget {
 
                         if (details.scale > 1) {
                           GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
-                          GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+                          GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
                         }
                         else {
                           GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
-                          GanttChartController.instance.chartController.jumpTo(GanttChartController.instance.chartController.position.pixels);
+                          GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
                         }
 
                         GanttChartController.instance.update();
@@ -290,11 +294,11 @@ class GanttChart extends StatelessWidget {
 
                                         if (pointerSignal.scrollDelta.dy.sign < 0) {
                                           ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                          ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
+                                          ganttChartValue.chartBarsController.jumpTo(ganttChartValue.chartBarsController.position.pixels);
                                         }
                                         else {
                                           ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                          ganttChartValue.chartController.jumpTo(ganttChartValue.chartController.position.pixels);
+                                          ganttChartValue.chartBarsController.jumpTo(ganttChartValue.chartBarsController.position.pixels);
                                         }
 
                                         ganttChartValue.update();
@@ -303,17 +307,25 @@ class GanttChart extends StatelessWidget {
                                   },
                                   onPointerDown: (event) async => await ganttChartValue.onPointerDown(event, chartContext),
                                   onPointerUp: (event) async => await ganttChartValue.onPointerUp(event, chartContext),
-                                  onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
+                                  onPointerMove: (event) async => ganttChartValue.onPointerDownTime = null,
                                   child: Stack(
-                                    fit: StackFit.loose,
+                                    clipBehavior: Clip.none,
+                                    fit: StackFit.passthrough,
                                     children: <Widget>[
-                                      const ChartGrid(),
+                                      // Não tornar ChartGrid constante, senão zoomin e out não funcioinarão corretamente
+                                      ChartGrid(),
+                                      ChartBarsDependencyLines(
+                                        gantChartController: ganttChartValue,
+                                        constraints: constraints,
+                                        color: color,
+                                        data: filteredUserData,
+                                      ),
                                       ChartBars(
                                         gantChartController: ganttChartValue,
                                         constraints: constraints,
                                         color: color,
-                                        data: userData,
-                                      )
+                                        data: filteredUserData,
+                                      ),
                                     ],
                                   ),
                                 ),

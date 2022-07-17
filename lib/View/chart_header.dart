@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Controller/gantt_chart_controller.dart';
+import '../controller/gantt_chart_controller.dart';
 
 class ChartHeader extends StatelessWidget {
   final Color color;

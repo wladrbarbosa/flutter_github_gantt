@@ -231,6 +231,27 @@ class MyHomePageState extends State<MyHomePage> {
                     ),
                   ],
                 ),
+                Wrap(
+                  spacing: 20,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Text(
+                      'Filtrar por título:'
+                    ),
+                    SizedBox(
+                      width: 250,
+                      child: TextFormField(
+                        controller: GanttChartController.instance.filterController,
+                        decoration: const InputDecoration(
+                          hintText: 'Filtro...'
+                        ),
+                        onChanged: (value) async {
+                          GanttChartController.instance.update();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

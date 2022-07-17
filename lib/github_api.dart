@@ -170,7 +170,7 @@ class GitHubAPI {
           Issue temp = Issue.fromJson(issuesList[i]);
           temp.startTime = startTime;
           temp.endTime = endTime;
-          String? parsedParent = RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(issuesList[i]['body']).fold('', (previousValue, el) => '$previousValue${el.group(0)}');
+          String? parsedParent = issuesList[i]['body'] == null ? null : RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(issuesList[i]['body']).fold('', (previousValue, el) => '$previousValue${el.group(0)}');
           
           if (parsedParent != null && parsedParent != '') {
             temp.dependencies = parsedParent.replaceFirst(RegExp(r',$', multiLine: true), '').split(',').map<int>((e) => int.parse(e)).toList();
