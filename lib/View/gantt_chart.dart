@@ -1,5 +1,7 @@
 //Only on web
 //import 'dart:html';
+import 'dart:math';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/view/chart_bars.dart';
@@ -29,6 +31,11 @@ class GanttChart extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Issue> filteredUserData = [];
     GanttChartController.instance.nodeAttachment.reparent();
+    lineColors.clear();
+
+    for (int i = 0; i < userData.length; i++) {
+      lineColors.add(Color.fromARGB(255, Random().nextInt(256), Random().nextInt(256), Random().nextInt(256)));
+    }
     //Only on web
     //document.onContextMenu.listen((event) => event.preventDefault());
 

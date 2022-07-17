@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import '../controller/gantt_chart_controller.dart';
 import 'package:provider/provider.dart';
@@ -28,9 +26,9 @@ class DependencyLine extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     lineHorPos.removeWhere((el) => el['index'] == index);
 
-    double getAvailablePath(double value) {
-      if (lineHorPos.indexWhere((el) => el['pos'] == value) > -1) {
-        return getAvailablePath(value - 4);
+    double getAvailablePath(double value, Issue issue, double distanceToLeftBorder) {
+      if (lineHorPos.where((el) => (el['pos']!.abs() - (distanceToLeftBorder + value).abs()).abs() < 4).isNotEmpty) {
+        return getAvailablePath(value - 4, issue, distanceToLeftBorder);
       }
       else {
         return value;
@@ -41,6 +39,7 @@ class DependencyLine extends CustomPainter {
       List<Issue> depIssues = depIssuesNumbers.map<Issue>((e) => allIssue.singleWhere((el) => el.number == e)).toList();
       for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
+        double distanceToLeftBorder = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
         
         if (indexDif > 0) {
           double issueLeft = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) *
@@ -51,16 +50,14 @@ class DependencyLine extends CustomPainter {
                 issue.width :
                 0
             );
-          double depIssueLeft = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) *
-            GanttChartController.instance.chartViewWidth /
-            GanttChartController.instance.viewRangeToFitScreen! + (
+          double depIssueLeft = distanceToLeftBorder + (
               GanttChartController.instance.isPanStartActive ||
               GanttChartController.instance.isPanMiddleActive ?
                 el.width :
                 0
             ) - 20;
 
-          double leftPos = getAvailablePath(-(issueLeft - depIssueLeft));
+          double leftPos = getAvailablePath(-(issueLeft - depIssueLeft), el, distanceToLeftBorder);
 
           canvas.drawPath(
             Path()..moveTo(
@@ -74,7 +71,7 @@ class DependencyLine extends CustomPainter {
               ..strokeCap = StrokeCap.round
               ..strokeWidth = 1,
           );
-          lineHorPos.add({'index': index, 'pos': leftPos});
+          lineHorPos.add({'index': index, 'pos': distanceToLeftBorder + leftPos});
         }
       }
     }
@@ -105,12 +102,6 @@ class ChartBarsDependencyLines extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    lineColors.clear();
-
-    for (int i = 0; i < data.length; i++) {
-      lineColors.add(Color.fromARGB(255, Random().nextInt(256), Random().nextInt(256), Random().nextInt(256)));
-    }
-
     return Container(
       margin: const EdgeInsets.only(top: 30.0),
       child: SingleChildScrollView(
@@ -137,7 +128,7 @@ class ChartBarsDependencyLines extends StatelessWidget {
                             issue: issuesValue,
                             depIssuesNumbers: issuesValue.dependencies,
                             index: index,
-                            color: lineColors.removeAt(0)
+                            color: lineColors[index]
                           ),
                           child: SizedBox(
                             width: GanttChartController.instance.calculateNumberOfDaysBetween(

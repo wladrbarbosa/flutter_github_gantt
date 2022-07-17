@@ -58,6 +58,9 @@ class NewIssueDialogState extends State<NewIssueDialog> {
         end: DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: ).*').stringMatch(widget.issue!.body!)!),
       );
     }
+    else {
+      _selAssignees.add(widget.assignees!.singleWhere((el) => el.login == GanttChartController.instance.user!.login));
+    }
 
     super.initState();
   }
@@ -153,7 +156,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                     ),
                   ),
                   DropdownButtonFormField<int>(
-                    value: _selMilestone == null ? null : _selMilestone!.id,
+                    value: _selMilestone == null ? widget.milestones![0].id : _selMilestone!.id,
                     hint: const Text(
                       'Milestone',
                     ),
