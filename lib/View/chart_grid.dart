@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Controller/GanttChartController.dart';
+import '../Controller/gantt_chart_controller.dart';
 
 class ChartGrid extends StatelessWidget {
   const ChartGrid({

@@ -2,20 +2,20 @@
 //import 'dart:html';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/View/ChartBars.dart';
-import 'package:flutter_github_gantt/View/ChartGrid.dart';
-import 'package:flutter_github_gantt/View/ChartHeader.dart';
+import 'package:flutter_github_gantt/view/chart_bars.dart';
+import 'package:flutter_github_gantt/view/chart_grid.dart';
+import 'package:flutter_github_gantt/view/chart_header.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../Model/Issue.dart';
-import '../Controller/GanttChartController.dart';
+import '../model/issue.dart';
+import '../controller/gantt_chart_controller.dart';
 
 class GanttChart extends StatelessWidget {
   final List<Issue> userData;
   final BuildContext context;
   final Color color;
 
-  GanttChart(
+  const GanttChart(
     this.userData,
     this.context,
     this.color,
@@ -43,23 +43,26 @@ class GanttChart extends StatelessWidget {
               if (startOrder == 0) {
                 startOrder = a.state!.compareTo(b.state!);
 
-                if (startOrder == 0)
+                if (startOrder == 0) {
                   return a.number!.compareTo(b.number!);
-                else
+                } else {
                   return startOrder;
+                }
               }
-              else
-                return startOrder;    
+              else {
+                return startOrder;
+              }    
             }
-            else
+            else {
               return startOrder;
+            }
           });
 
-          return Container(
+          return SizedBox(
             width: MediaQuery.of(ganttChartContext).size.width,
             child: Row(
               children: [
-                Container(
+                SizedBox(
                   width: ganttChartValue.issuesListWidth,
                   child: Row(
                     children: [
@@ -68,10 +71,10 @@ class GanttChart extends StatelessWidget {
                           children: [
                             Container(
                               height: 30.0,
-                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
                               color: color.withAlpha(255),
                               child: Row(
-                                children: [
+                                children: const [
                                   Expanded(
                                     child: Text(
                                       'Id'
@@ -133,7 +136,7 @@ class GanttChart extends StatelessWidget {
                                                   )
                                                 )
                                               ),
-                                              padding: EdgeInsets.symmetric(horizontal: 10),
+                                              padding: const EdgeInsets.symmetric(horizontal: 10),
                                               child: Row(
                                                 children: [
                                                   Expanded(
@@ -183,11 +186,13 @@ class GanttChart extends StatelessWidget {
                         onPanUpdate: (details) {
                           ganttChartValue.issuesListWidth += details.globalPosition.dx - ganttChartValue.issuesListWidth;
 
-                          if (ganttChartValue.issuesListWidth > MediaQuery.of(ganttChartContext).size.width)
+                          if (ganttChartValue.issuesListWidth > MediaQuery.of(ganttChartContext).size.width) {
                             ganttChartValue.issuesListWidth = MediaQuery.of(ganttChartContext).size.width;
+                          }
 
-                          if (ganttChartValue.issuesListWidth < 20)
+                          if (ganttChartValue.issuesListWidth < 20) {
                             ganttChartValue.issuesListWidth = 20;
+                          }
                         },
                         child: Column(
                           children: [
@@ -203,8 +208,8 @@ class GanttChart extends StatelessWidget {
                                   onPressed: () {
                                     ganttChartValue.issuesListWidth = 20;
                                   },
-                                  padding: EdgeInsets.all(0),
-                                  icon: Center(
+                                  padding: const EdgeInsets.all(0),
+                                  icon: const Center(
                                     child: Icon(
                                       Icons.keyboard_arrow_left_rounded,
                                       size: 15,
@@ -226,8 +231,8 @@ class GanttChart extends StatelessWidget {
                                   onPressed: () {
                                     ganttChartValue.issuesListWidth = MediaQuery.of(ganttChartContext).size.width;
                                   },
-                                  padding: EdgeInsets.all(0),
-                                  icon: Icon(
+                                  padding: const EdgeInsets.all(0),
+                                  icon: const Icon(
                                     Icons.keyboard_arrow_right_rounded,
                                     size: 15,
                                   ),
@@ -271,7 +276,7 @@ class GanttChart extends StatelessWidget {
                         return SingleChildScrollView(
                           controller: ganttChartValue.horizontalController,
                           scrollDirection: Axis.horizontal,
-                          physics: ganttChartValue.isPanStartActive || ganttChartValue.isPanEndActive || ganttChartValue.isPanMiddleActive ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
+                          physics: ganttChartValue.isPanStartActive || ganttChartValue.isPanEndActive || ganttChartValue.isPanMiddleActive ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
                           child: Stack(
                             children: [
                               SizedBox(
@@ -302,7 +307,7 @@ class GanttChart extends StatelessWidget {
                                   child: Stack(
                                     fit: StackFit.loose,
                                     children: <Widget>[
-                                      ChartGrid(),
+                                      const ChartGrid(),
                                       ChartBars(
                                         gantChartController: ganttChartValue,
                                         constraints: constraints,

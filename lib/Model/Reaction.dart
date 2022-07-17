@@ -37,17 +37,17 @@ class Reaction {
 	}
 
 	Map<String, dynamic> toJson() {
-		final Map<String, dynamic> data = new Map<String, dynamic>();
-		data['url'] = this.url;
-		data['total_count'] = this.totalCount;
-		data['+1'] = this.plusOne;
-		data['-1'] = this.minusOne;
-		data['laugh'] = this.laugh;
-		data['hooray'] = this.hooray;
-		data['confused'] = this.confused;
-		data['heart'] = this.heart;
-		data['rocket'] = this.rocket;
-		data['eyes'] = this.eyes;
+		final Map<String, dynamic> data = <String, dynamic>{};
+		data['url'] = url;
+		data['total_count'] = totalCount;
+		data['+1'] = plusOne;
+		data['-1'] = minusOne;
+		data['laugh'] = laugh;
+		data['hooray'] = hooray;
+		data['confused'] = confused;
+		data['heart'] = heart;
+		data['rocket'] = rocket;
+		data['eyes'] = eyes;
 		return data;
 	}
 }

@@ -32,12 +32,14 @@ class Log {
   }
 
   static netStartShow(String endPoint, {String type = 'Http', Object? data, int status = 100}) {
-    if (!kReleaseMode)
-      Logger.net('$endPoint', type: '\x1B[37m(${DateTime.now()})\x1B[0m $type', status: status, data: '\x1B[32m$data\x1B[0m');
+    if (!kReleaseMode) {
+      Logger.net(endPoint, type: '\x1B[37m(${DateTime.now()})\x1B[0m $type', status: status, data: '\x1B[32m$data\x1B[0m');
+    }
   }
 
   static netEndShow(String endPoint, {String? type, Object? headers, Object? data, int status = 200}) {
-    if (!kReleaseMode)
-      Logger.endNet('$endPoint', type: '\x1B[37m(${DateTime.now()})\x1B[0m $type', status: status, data: '\x1B[32m$data\x1B[0m', headers: headers);
+    if (!kReleaseMode) {
+      Logger.endNet(endPoint, type: '\x1B[37m(${DateTime.now()})\x1B[0m $type', status: status, data: '\x1B[32m$data\x1B[0m', headers: headers);
+    }
   }
 }

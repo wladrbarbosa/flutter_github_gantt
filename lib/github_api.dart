@@ -1,18 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_github_gantt/Model/Assignees.dart';
-import 'package:flutter_github_gantt/Model/Label.dart';
-import 'package:flutter_github_gantt/Model/Milestone.dart';
-import 'package:flutter_github_gantt/Model/RateLimit.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/label.dart';
+import 'package:flutter_github_gantt/model/milestone.dart';
+import 'package:flutter_github_gantt/model/rate_limit.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'Controller/GanttChartController.dart';
-import 'Controller/RepoController.dart';
-import 'Log.dart';
-import 'Model/Issue.dart';
-import 'Model/User.dart';
+import 'controller/gantt_chart_controller.dart';
+import 'controller/repo_controller.dart';
+import 'log.dart';
+import 'model/issue.dart';
+import 'model/user.dart';
 
 class GitHubAPI {
   String? userToken;
@@ -69,10 +69,11 @@ class GitHubAPI {
     } catch (e) {
       Log.show('e', '$e');
 
-      if (T.toString() == 'List<dynamic>')
+      if (T.toString() == 'List<dynamic>') {
         result = [] as T;
-      else
+      } else {
         result = {} as T;
+      }
     }
     Log.netEndShow('$apiCore$endPoint');
 
@@ -86,7 +87,7 @@ class GitHubAPI {
 
     try {
       response = await post(
-        Uri.parse('$graphQLCore'),
+        Uri.parse(graphQLCore),
         headers: {
           HttpHeaders.acceptHeader: 'application/json',
           HttpHeaders.acceptLanguageHeader: 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -111,7 +112,7 @@ class GitHubAPI {
   Future<void> awaitIssuesPages(int totalPages) async {
     if (pagesLoaded < totalPages) {
       Log.show('d', '$pagesLoaded páginas carregadas de $totalPages. Aguardando 100 ms para continuar...');
-      return await Future.delayed(Duration(milliseconds: 100), () async => await awaitIssuesPages(totalPages));
+      return await Future.delayed(const Duration(milliseconds: 100), () async => await awaitIssuesPages(totalPages));
     }
   }
 
@@ -131,8 +132,9 @@ class GitHubAPI {
     DateTime? chartEnd;
     pagesLoaded = 0;
 
-    if (resultTotalIssues != null)
+    if (resultTotalIssues != null) {
       numberOfPages = (resultTotalIssues['data']['repository']['issues']['totalCount'] / 100 as double).ceil();
+    }
 
     for (int j = 1; j <= numberOfPages; j++) {
       gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
@@ -153,15 +155,15 @@ class GitHubAPI {
             }
           }
 
-          if (chartStart == null)
+          if (chartStart == null) {
             chartStart = startTime;
-          else if (startTime.isBefore(chartStart!)) {
+          } else if (startTime.isBefore(chartStart!)) {
             chartStart = startTime;
           }
 
-          if (chartEnd == null)
+          if (chartEnd == null) {
             chartEnd = endTime;
-          else if (endTime.isAfter(chartEnd!)) {
+          } else if (endTime.isAfter(chartEnd!)) {
             chartEnd = endTime;
           }
 
@@ -170,8 +172,9 @@ class GitHubAPI {
           temp.endTime = endTime;
           String? parsedParent = RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(issuesList[i]['body']).fold('', (previousValue, el) => '$previousValue${el.group(0)}');
           
-          if (parsedParent != null && parsedParent != '')
+          if (parsedParent != null && parsedParent != '') {
             temp.dependencies = parsedParent.replaceFirst(RegExp(r',$', multiLine: true), '').split(',').map<int>((e) => int.parse(e)).toList();
+          }
           
           responseLits.add(temp);
         }
@@ -182,8 +185,8 @@ class GitHubAPI {
     await awaitIssuesPages(numberOfPages);
 
     refreshIssuesList = false;
-    GanttChartController.instance.fromDate = chartStart!.subtract(Duration(days: 5));
-    GanttChartController.instance.toDate = chartEnd!.add(Duration(days: 5));
+    GanttChartController.instance.fromDate = chartStart!.subtract(const Duration(days: 5));
+    GanttChartController.instance.toDate = chartEnd!.add(const Duration(days: 5));
     GanttChartController.instance.viewRange = GanttChartController.instance.calculateNumberOfDaysBetween(
       GanttChartController.instance.fromDate!,
       GanttChartController.instance.toDate!
@@ -192,7 +195,7 @@ class GitHubAPI {
   }
   
   void reloadIssues() {
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () {
       GanttChartController.instance.gitHub!.refreshIssuesList = true;
       GanttChartController.instance.repo!.update();
     });
@@ -317,7 +320,7 @@ class GitHubAPI {
       GanttChartController.instance.prefs = value;
       String? savedToken = GanttChartController.instance.prefs!.getString('token');
       String? savedRepo = GanttChartController.instance.prefs!.getString('repo');
-      tokenController.text = savedToken != null ? savedToken : '';
+      tokenController.text = savedToken ?? '';
       GanttChartController.instance.repo = savedRepo != null ? RepoController.fromJSONStr(savedRepo) : null;
       GanttChartController.instance.gitHub!.userToken = tokenController.text;
     });
@@ -332,8 +335,9 @@ class GitHubAPI {
       );
       await GanttChartController.instance.gitHub!.getReposList();
     }
-    else
+    else {
       GanttChartController.instance.user = null;
+    }
 
     rootSetState();
     return GanttChartController.instance.user;

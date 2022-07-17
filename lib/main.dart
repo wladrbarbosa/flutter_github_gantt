@@ -1,17 +1,17 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/Controller/GanttChartController.dart';
-import 'package:flutter_github_gantt/View/About.dart';
+import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
+import 'package:flutter_github_gantt/view/about.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'Controller/RepoController.dart';
-import 'GanttChartApp.dart';
-import 'GitHubAPI.dart';
-import 'Model/User.dart';
+import 'controller/repo_controller.dart';
+import 'gantt_chart_app.dart';
+import 'github_api.dart';
+import 'model/user.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
@@ -25,15 +25,17 @@ class MyCustomScrollBehavior extends MaterialScrollBehavior {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       locale: const Locale('pt', 'BR'),
-      supportedLocales: [
-        const Locale('pt', 'BR'), // Brazillian Portuguese, no country code
-        const Locale('en', ''), // English, no country code
-        const Locale('es', ''), // Spanish, no country code
+      supportedLocales: const [
+        Locale('pt', 'BR'), // Brazillian Portuguese, no country code
+        Locale('en', ''), // English, no country code
+        Locale('es', ''), // Spanish, no country code
       ],
       scrollBehavior: MyCustomScrollBehavior(),
       debugShowCheckedModeBanner: false,
@@ -57,18 +59,18 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.green,
       ),
-      localizationsDelegates: [
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: MyHomePage(title: 'Github Gantt'),
+      home: const MyHomePage(title: 'Github Gantt'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -82,11 +84,11 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  MyHomePageState createState() => MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  TextEditingController _userToken = TextEditingController();
+class MyHomePageState extends State<MyHomePage> {
+  final TextEditingController _userToken = TextEditingController();
   Future<User?>? _user;
 
   void update() {
@@ -104,11 +106,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (GanttChartController.instance.rootContext == null)
+    if (GanttChartController.instance.rootContext == null) {
       GanttChartController.instance.setContext(context, 520);
+    }
 
-    if (MediaQuery.of(context).size.width < GanttChartController.instance.issuesListWidth)
+    if (MediaQuery.of(context).size.width < GanttChartController.instance.issuesListWidth) {
       GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width);
+    }
 
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -124,36 +128,34 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           Container(
             width: MediaQuery.of(context).size.width / 2.45,
-            margin: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-            child: Container(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      GanttChartController.instance.gitHub!.reloadIssues();
-                    },
-                    child: Text(
-                      'Atualizar',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
+            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    GanttChartController.instance.gitHub!.reloadIssues();
+                  },
+                  child: const Text(
+                    'Atualizar',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      await showDialog(
-                        context: context,
-                        builder: (NewIssueDialogContext) {
-                          return About();
-                        }
-                      );
-                    },
-                    child: Icon(
-                      Icons.settings,
-                    ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (newIssueDialogContext) {
+                        return const About();
+                      }
+                    );
+                  },
+                  child: const Icon(
+                    Icons.settings,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -174,17 +176,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   spacing: 20,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Container(
-                      child: Text(
-                        'Token:'
-                      ),
+                    const Text(
+                      'Token:'
                     ),
-                    Container(
+                    SizedBox(
                       width: 250,
                       child: TextFormField(
                         controller: _userToken,
                         obscureText: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: 'Personal token'
                         ),
                         onChanged: (value) async {
@@ -200,12 +200,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   spacing: 20,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Container(
-                      child: Text(
-                        'Repo:'
-                      ),
+                    const Text(
+                      'Repo:'
                     ),
-                    Container(
+                    SizedBox(
                       width: 250,
                       child: DropdownButton<int>(
                         isExpanded: true,
@@ -216,18 +214,18 @@ class _MyHomePageState extends State<MyHomePage> {
                             GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
                           });
                         },
-                        hint: Text(
+                        hint: const Text(
                           'Selecione o repositório...',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
+                          value: e.id,
                           child: Text(
                             e.name!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          value: e.id,
                         )).toList()
                       ),
                     ),
@@ -244,7 +242,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 future: _user,
                 builder: (userContext, userSnapshot) {
                   if (userSnapshot.connectionState == ConnectionState.done) {
-                    if (userSnapshot.hasData)
+                    if (userSnapshot.hasData) {
                       return ChangeNotifierProvider<RepoController?>.value(
                         value: GanttChartController.instance.repo,
                         child: Consumer<RepoController?>(
@@ -259,17 +257,19 @@ class _MyHomePageState extends State<MyHomePage> {
                           }
                         ),
                       );
-                    else
-                      return Center(
+                    } else {
+                      return const Center(
                         child: Text(
                           'Token inexistente ou incorreta'
                         ),
                       );
+                    }
                   }
-                  else
-                    return Center(
+                  else {
+                    return const Center(
                       child: CircularProgressIndicator()
                     );
+                  }
                 }
               ),
             ),

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_github_gantt/Model/Assignees.dart';
-import 'package:flutter_github_gantt/Model/Label.dart';
-import 'package:flutter_github_gantt/Model/Milestone.dart';
-import 'package:flutter_github_gantt/Model/Reaction.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/label.dart';
+import 'package:flutter_github_gantt/model/milestone.dart';
+import 'package:flutter_github_gantt/model/reaction.dart';
 
 class Issue extends ChangeNotifier {
   Issue({
@@ -100,8 +100,9 @@ class Issue extends ChangeNotifier {
   void toggleProcessing({bool notify = true}) {
     processing = !processing;
 
-    if (notify)
+    if (notify) {
       update();
+    }
   }
 
   Issue.fromJson(Map<String, dynamic> json) {
@@ -115,19 +116,19 @@ class Issue extends ChangeNotifier {
 		nodeId = json['node_id'];
 		number = json['number'];
 		title = json['title'];
-		user = json['user'] != null ? new Assignee.fromJson(json['user']) : null;
+		user = json['user'] != null ? Assignee.fromJson(json['user']) : null;
 		if (json['labels'] != null) {
 			labels = <Label>[];
-			json['labels'].forEach((v) { labels!.add(new Label.fromJson(v)); });
+			json['labels'].forEach((v) { labels!.add(Label.fromJson(v)); });
 		}
 		state = json['state'];
 		locked = json['locked'];
-		assignee = json['assignee'] != null ? new Assignee.fromJson(json['assignee']) : null;
+		assignee = json['assignee'] != null ? Assignee.fromJson(json['assignee']) : null;
 		if (json['assignees'] != null) {
 			assignees = <Assignee>[];
-			json['assignees'].forEach((v) { assignees!.add(new Assignee.fromJson(v)); });
+			json['assignees'].forEach((v) { assignees!.add(Assignee.fromJson(v)); });
 		}
-		milestone = json['milestone'] != null ? new Milestone.fromJson(json['milestone']) : null;
+		milestone = json['milestone'] != null ? Milestone.fromJson(json['milestone']) : null;
 		comments = json['comments'];
 		createdAt = json['created_at'];
 		updatedAt = json['updated_at'];
@@ -135,52 +136,52 @@ class Issue extends ChangeNotifier {
 		authorAssociation = json['author_association'];
 		activeLockReason = json['active_lock_reason'];
 		body = json['body'];
-		reactions = json['reactions'] != null ? new Reaction.fromJson(json['reactions']) : null;
+		reactions = json['reactions'] != null ? Reaction.fromJson(json['reactions']) : null;
 		timelineUrl = json['timeline_url'];
 		performedViaGithubApp = json['performed_via_github_app'];
 	}
 
 	Map<String, dynamic> toJson() {
-		final Map<String, dynamic> data = new Map<String, dynamic>();
-		data['url'] = this.url;
-		data['repository_url'] = this.repositoryUrl;
-		data['labels_url'] = this.labelsUrl;
-		data['comments_url'] = this.commentsUrl;
-		data['events_url'] = this.eventsUrl;
-		data['html_url'] = this.htmlUrl;
-		data['id'] = this.id;
-		data['node_id'] = this.nodeId;
-		data['number'] = this.number;
-		data['title'] = this.title;
-		if (this.user != null) {
-      data['user'] = this.user!.toJson();
+		final Map<String, dynamic> data = <String, dynamic>{};
+		data['url'] = url;
+		data['repository_url'] = repositoryUrl;
+		data['labels_url'] = labelsUrl;
+		data['comments_url'] = commentsUrl;
+		data['events_url'] = eventsUrl;
+		data['html_url'] = htmlUrl;
+		data['id'] = id;
+		data['node_id'] = nodeId;
+		data['number'] = number;
+		data['title'] = title;
+		if (user != null) {
+      data['user'] = user!.toJson();
     }
-		if (this.labels != null) {
-      data['labels'] = this.labels!.map((v) => v.toJson()).toList();
+		if (labels != null) {
+      data['labels'] = labels!.map((v) => v.toJson()).toList();
     }
-		data['state'] = this.state;
-		data['locked'] = this.locked;
-		if (this.assignee != null) {
-      data['assignee'] = this.assignee!.toJson();
+		data['state'] = state;
+		data['locked'] = locked;
+		if (assignee != null) {
+      data['assignee'] = assignee!.toJson();
     }
-		if (this.assignees != null) {
-      data['assignees'] = this.assignees!.map((v) => v.toJson()).toList();
+		if (assignees != null) {
+      data['assignees'] = assignees!.map((v) => v.toJson()).toList();
     }
-		if (this.milestone != null) {
-      data['milestone'] = this.milestone!.toJson();
+		if (milestone != null) {
+      data['milestone'] = milestone!.toJson();
     }
-		data['comments'] = this.comments;
-		data['created_at'] = this.createdAt;
-		data['updated_at'] = this.updatedAt;
-		data['closed_at'] = this.closedAt;
-		data['author_association'] = this.authorAssociation;
-		data['active_lock_reason'] = this.activeLockReason;
-		data['body'] = this.body;
-		if (this.reactions != null) {
-      data['reactions'] = this.reactions!.toJson();
+		data['comments'] = comments;
+		data['created_at'] = createdAt;
+		data['updated_at'] = updatedAt;
+		data['closed_at'] = closedAt;
+		data['author_association'] = authorAssociation;
+		data['active_lock_reason'] = activeLockReason;
+		data['body'] = body;
+		if (reactions != null) {
+      data['reactions'] = reactions!.toJson();
     }
-		data['timeline_url'] = this.timelineUrl;
-		data['performed_via_github_app'] = this.performedViaGithubApp;
+		data['timeline_url'] = timelineUrl;
+		data['performed_via_github_app'] = performedViaGithubApp;
 		return data;
 	}
 }

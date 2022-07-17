@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/Controller/GanttChartController.dart';
-import 'package:flutter_github_gantt/Model/RateLimit.dart';
+import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
+import 'package:flutter_github_gantt/model/rate_limit.dart';
 import 'package:intl/intl.dart';
 
 class About extends StatelessWidget {
@@ -19,7 +19,7 @@ class About extends StatelessWidget {
         child: Scaffold(
           body: SingleChildScrollView(
             child: Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,17 +52,17 @@ class About extends StatelessWidget {
                       )
                     )
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Core',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.core!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Search',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.search!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'GraphQL',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.graphql!,
@@ -71,32 +71,32 @@ class About extends StatelessWidget {
                     title: 'Integration Manifest',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.integrationManifest!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Source Import',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.sourceImport!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Code Scanning Upload',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.codeScanningUpload!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Actions Runner Registration',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.actionsRunnerRegistration!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Scim',
                     limitInfo: GanttChartController.instance.rateLimit!.resources!.scim!,
                   ),
-                  Divider(),
+                  const Divider(),
                   UsageItem(
                     title: 'Rate',
                     limitInfo: GanttChartController.instance.rateLimit!.rate!,
                   ),
-                  Divider(),
+                  const Divider(),
                 ],
               ),
             ),
@@ -129,7 +129,7 @@ class UsageItem extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> subItems = [];
 
-    if (showLimit)
+    if (showLimit) {
       subItems.add(
         Text.rich(
           TextSpan(
@@ -145,8 +145,9 @@ class UsageItem extends StatelessWidget {
           )
         ),
       );
+    }
 
-    if (showUsed)
+    if (showUsed) {
       subItems.add(
         Text.rich(
           TextSpan(
@@ -162,8 +163,9 @@ class UsageItem extends StatelessWidget {
           )
         ),
       );
+    }
 
-    if (showRemaining)
+    if (showRemaining) {
       subItems.add(
         Text.rich(
           TextSpan(
@@ -179,15 +181,16 @@ class UsageItem extends StatelessWidget {
           )
         ),
       );
+    }
 
-    if (showReset)
+    if (showReset) {
       subItems.add(
         Text.rich(
           TextSpan(
             text: 'Reinicia em: ',
             children: [
               TextSpan(
-                text: '${DateFormat('dd/MM/yyyy HH:mm:ss', 'pt-BR').format(DateTime.fromMillisecondsSinceEpoch((limitInfo.reset! * 1000) - 3600000))}',
+                text: DateFormat('dd/MM/yyyy HH:mm:ss', 'pt-BR').format(DateTime.fromMillisecondsSinceEpoch((limitInfo.reset! * 1000) - 3600000)),
                 style: TextStyle(
                   color: Theme.of(context).primaryColor
                 )
@@ -196,27 +199,26 @@ class UsageItem extends StatelessWidget {
           )
         ),
       );
+    }
 
-    return Container(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20.0
           ),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 20.0
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: subItems,
-            ),
-          )
-        ],
-      ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: subItems,
+          ),
+        )
+      ],
     );
   }
 }

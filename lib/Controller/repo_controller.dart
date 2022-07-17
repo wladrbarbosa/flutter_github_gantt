@@ -171,7 +171,7 @@ class RepoController extends ChangeNotifier {
     name = json['name'];
     fullName = json['full_name'];
     private = json['private'];
-    owner = json['owner'] != null ? new Assignee.fromJson(json['owner']) : null;
+    owner = json['owner'] != null ? Assignee.fromJson(json['owner']) : null;
     htmlUrl = json['html_url'];
     description = json['description'];
     fork = json['fork'];
@@ -249,95 +249,95 @@ class RepoController extends ChangeNotifier {
     watchers = json['watchers'];
     defaultBranch = json['default_branch'];
     permissions = json['permissions'] != null
-        ? new Permission.fromJson(json['permissions'])
+        ? Permission.fromJson(json['permissions'])
         : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['node_id'] = this.nodeId;
-    data['name'] = this.name;
-    data['full_name'] = this.fullName;
-    data['private'] = this.private;
-    if (this.owner != null) {
-      data['owner'] = this.owner!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['node_id'] = nodeId;
+    data['name'] = name;
+    data['full_name'] = fullName;
+    data['private'] = private;
+    if (owner != null) {
+      data['owner'] = owner!.toJson();
     }
-    data['html_url'] = this.htmlUrl;
-    data['description'] = this.description;
-    data['fork'] = this.fork;
-    data['url'] = this.url;
-    data['forks_url'] = this.forksUrl;
-    data['keys_url'] = this.keysUrl;
-    data['collaborators_url'] = this.collaboratorsUrl;
-    data['teams_url'] = this.teamsUrl;
-    data['hooks_url'] = this.hooksUrl;
-    data['issue_events_url'] = this.issueEventsUrl;
-    data['events_url'] = this.eventsUrl;
-    data['assignees_url'] = this.assigneesUrl;
-    data['branches_url'] = this.branchesUrl;
-    data['tags_url'] = this.tagsUrl;
-    data['blobs_url'] = this.blobsUrl;
-    data['git_tags_url'] = this.gitTagsUrl;
-    data['git_refs_url'] = this.gitRefsUrl;
-    data['trees_url'] = this.treesUrl;
-    data['statuses_url'] = this.statusesUrl;
-    data['languages_url'] = this.languagesUrl;
-    data['stargazers_url'] = this.stargazersUrl;
-    data['contributors_url'] = this.contributorsUrl;
-    data['subscribers_url'] = this.subscribersUrl;
-    data['subscription_url'] = this.subscriptionUrl;
-    data['commits_url'] = this.commitsUrl;
-    data['git_commits_url'] = this.gitCommitsUrl;
-    data['comments_url'] = this.commentsUrl;
-    data['issue_comment_url'] = this.issueCommentUrl;
-    data['contents_url'] = this.contentsUrl;
-    data['compare_url'] = this.compareUrl;
-    data['merges_url'] = this.mergesUrl;
-    data['archive_url'] = this.archiveUrl;
-    data['downloads_url'] = this.downloadsUrl;
-    data['issues_url'] = this.issuesUrl;
-    data['pulls_url'] = this.pullsUrl;
-    data['milestones_url'] = this.milestonesUrl;
-    data['notifications_url'] = this.notificationsUrl;
-    data['labels_url'] = this.labelsUrl;
-    data['releases_url'] = this.releasesUrl;
-    data['deployments_url'] = this.deploymentsUrl;
-    data['created_at'] = this.createdAt;
-    data['updated_at'] = this.updatedAt;
-    data['pushed_at'] = this.pushedAt;
-    data['git_url'] = this.gitUrl;
-    data['ssh_url'] = this.sshUrl;
-    data['clone_url'] = this.cloneUrl;
-    data['svn_url'] = this.svnUrl;
-    data['homepage'] = this.homepage;
-    data['size'] = this.size;
-    data['stargazers_count'] = this.stargazersCount;
-    data['watchers_count'] = this.watchersCount;
-    data['language'] = this.language;
-    data['has_issues'] = this.hasIssues;
-    data['has_projects'] = this.hasProjects;
-    data['has_downloads'] = this.hasDownloads;
-    data['has_wiki'] = this.hasWiki;
-    data['has_pages'] = this.hasPages;
-    data['forks_count'] = this.forksCount;
-    data['mirror_url'] = this.mirrorUrl;
-    data['archived'] = this.archived;
-    data['disabled'] = this.disabled;
-    data['open_issues_count'] = this.openIssuesCount;
-    data['license'] = this.license;
-    data['allow_forking'] = this.allowForking;
-    data['is_template'] = this.isTemplate;
-    if (this.topics != null) {
-      data['topics'] = this.topics!.map<String>((v) => v).toList();
+    data['html_url'] = htmlUrl;
+    data['description'] = description;
+    data['fork'] = fork;
+    data['url'] = url;
+    data['forks_url'] = forksUrl;
+    data['keys_url'] = keysUrl;
+    data['collaborators_url'] = collaboratorsUrl;
+    data['teams_url'] = teamsUrl;
+    data['hooks_url'] = hooksUrl;
+    data['issue_events_url'] = issueEventsUrl;
+    data['events_url'] = eventsUrl;
+    data['assignees_url'] = assigneesUrl;
+    data['branches_url'] = branchesUrl;
+    data['tags_url'] = tagsUrl;
+    data['blobs_url'] = blobsUrl;
+    data['git_tags_url'] = gitTagsUrl;
+    data['git_refs_url'] = gitRefsUrl;
+    data['trees_url'] = treesUrl;
+    data['statuses_url'] = statusesUrl;
+    data['languages_url'] = languagesUrl;
+    data['stargazers_url'] = stargazersUrl;
+    data['contributors_url'] = contributorsUrl;
+    data['subscribers_url'] = subscribersUrl;
+    data['subscription_url'] = subscriptionUrl;
+    data['commits_url'] = commitsUrl;
+    data['git_commits_url'] = gitCommitsUrl;
+    data['comments_url'] = commentsUrl;
+    data['issue_comment_url'] = issueCommentUrl;
+    data['contents_url'] = contentsUrl;
+    data['compare_url'] = compareUrl;
+    data['merges_url'] = mergesUrl;
+    data['archive_url'] = archiveUrl;
+    data['downloads_url'] = downloadsUrl;
+    data['issues_url'] = issuesUrl;
+    data['pulls_url'] = pullsUrl;
+    data['milestones_url'] = milestonesUrl;
+    data['notifications_url'] = notificationsUrl;
+    data['labels_url'] = labelsUrl;
+    data['releases_url'] = releasesUrl;
+    data['deployments_url'] = deploymentsUrl;
+    data['created_at'] = createdAt;
+    data['updated_at'] = updatedAt;
+    data['pushed_at'] = pushedAt;
+    data['git_url'] = gitUrl;
+    data['ssh_url'] = sshUrl;
+    data['clone_url'] = cloneUrl;
+    data['svn_url'] = svnUrl;
+    data['homepage'] = homepage;
+    data['size'] = size;
+    data['stargazers_count'] = stargazersCount;
+    data['watchers_count'] = watchersCount;
+    data['language'] = language;
+    data['has_issues'] = hasIssues;
+    data['has_projects'] = hasProjects;
+    data['has_downloads'] = hasDownloads;
+    data['has_wiki'] = hasWiki;
+    data['has_pages'] = hasPages;
+    data['forks_count'] = forksCount;
+    data['mirror_url'] = mirrorUrl;
+    data['archived'] = archived;
+    data['disabled'] = disabled;
+    data['open_issues_count'] = openIssuesCount;
+    data['license'] = license;
+    data['allow_forking'] = allowForking;
+    data['is_template'] = isTemplate;
+    if (topics != null) {
+      data['topics'] = topics!.map<String>((v) => v).toList();
     }
-    data['visibility'] = this.visibility;
-    data['forks'] = this.forks;
-    data['open_issues'] = this.openIssues;
-    data['watchers'] = this.watchers;
-    data['default_branch'] = this.defaultBranch;
-    if (this.permissions != null) {
-      data['permissions'] = this.permissions!.toJson();
+    data['visibility'] = visibility;
+    data['forks'] = forks;
+    data['open_issues'] = openIssues;
+    data['watchers'] = watchers;
+    data['default_branch'] = defaultBranch;
+    if (permissions != null) {
+      data['permissions'] = permissions!.toJson();
     }
     return data;
   }

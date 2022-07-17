@@ -22,12 +22,12 @@ class Permission {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['admin'] = this.admin;
-    data['maintain'] = this.maintain;
-    data['push'] = this.push;
-    data['triage'] = this.triage;
-    data['pull'] = this.pull;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['admin'] = admin;
+    data['maintain'] = maintain;
+    data['push'] = push;
+    data['triage'] = triage;
+    data['pull'] = pull;
     return data;
   }
 }

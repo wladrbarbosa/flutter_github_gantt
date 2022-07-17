@@ -47,7 +47,7 @@ class Milestone {
     title = json['title'];
     description = json['description'];
     creator =
-        json['creator'] != null ? new Assignee.fromJson(json['creator']) : null;
+        json['creator'] != null ? Assignee.fromJson(json['creator']) : null;
     openIssues = json['open_issues'];
     closedIssues = json['closed_issues'];
     state = json['state'];
@@ -58,25 +58,25 @@ class Milestone {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['url'] = this.url;
-    data['html_url'] = this.htmlUrl;
-    data['labels_url'] = this.labelsUrl;
-    data['id'] = this.id;
-    data['node_id'] = this.nodeId;
-    data['number'] = this.number;
-    data['title'] = this.title;
-    data['description'] = this.description;
-    if (this.creator != null) {
-      data['creator'] = this.creator!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['url'] = url;
+    data['html_url'] = htmlUrl;
+    data['labels_url'] = labelsUrl;
+    data['id'] = id;
+    data['node_id'] = nodeId;
+    data['number'] = number;
+    data['title'] = title;
+    data['description'] = description;
+    if (creator != null) {
+      data['creator'] = creator!.toJson();
     }
-    data['open_issues'] = this.openIssues;
-    data['closed_issues'] = this.closedIssues;
-    data['state'] = this.state;
-    data['created_at'] = this.createdAt;
-    data['updated_at'] = this.updatedAt;
-    data['due_on'] = this.dueOn;
-    data['closed_at'] = this.closedAt;
+    data['open_issues'] = openIssues;
+    data['closed_issues'] = closedIssues;
+    data['state'] = state;
+    data['created_at'] = createdAt;
+    data['updated_at'] = updatedAt;
+    data['due_on'] = dueOn;
+    data['closed_at'] = closedAt;
     return data;
   }
 }

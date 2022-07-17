@@ -29,3 +29,4 @@ packages
 .flutter-plugins-dependencies
 .firebase/
 generated_plugin_registrant.dart
+.fvm/flutter_sdk

@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Controller/GanttChartController.dart';
+import '../controller/gantt_chart_controller.dart';
 import 'package:provider/provider.dart';
-import '../Model/Issue.dart';
+import '../model/issue.dart';
 
 class DependencyLine extends CustomPainter {
   const DependencyLine({
@@ -19,9 +19,9 @@ class DependencyLine extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (depIssuesNumbers.length > 0) {
+    if (depIssuesNumbers.isNotEmpty) {
       List<Issue> depIssues = depIssuesNumbers.map<Issue>((e) => allIssue.singleWhere((el) => el.number == e)).toList();
-      depIssues.forEach((el) {
+      for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
         
         if (indexDif > 0) {
@@ -53,7 +53,7 @@ class DependencyLine extends CustomPainter {
               ..strokeWidth = 1,
           );
         }
-      });
+      }
     }
   }
 
@@ -72,7 +72,7 @@ class ChartBars extends StatelessWidget {
   final GanttChartController gantChartController;
   final BoxConstraints constraints;
 
-  ChartBars({
+  const ChartBars({
     Key? key,
     required this.gantChartController,
     required this.constraints,
@@ -88,11 +88,11 @@ class ChartBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 30.0),
+      margin: const EdgeInsets.only(top: 30.0),
       child: Stack(
         children: [
           ListView.builder(
-            physics: gantChartController.isAltPressed ? NeverScrollableScrollPhysics() : ClampingScrollPhysics(),
+            physics: gantChartController.isAltPressed ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
             controller: gantChartController.chartController,
             itemCount: data.length,
             itemBuilder: (listContext, index) {
@@ -102,7 +102,7 @@ class ChartBars extends StatelessWidget {
                   builder: (issuesContext, issuesValue, child) {
                     issuesValue.remainingWidth = GanttChartController.instance.calculateRemainingWidth(issuesValue.startTime!, issuesValue.endTime!);
 
-                    if (issuesValue.remainingWidth! > 0)
+                    if (issuesValue.remainingWidth! > 0) {
                       return Stack(
                         clipBehavior: Clip.none,
                         fit: StackFit.passthrough,
@@ -116,7 +116,7 @@ class ChartBars extends StatelessWidget {
                                 issue: issuesValue,
                                 depIssuesNumbers: issuesValue.dependencies
                               ),
-                              child: Container(
+                              child: SizedBox(
                                 width: GanttChartController.instance.calculateNumberOfDaysBetween(
                                   GanttChartController.instance.fromDate!,
                                   GanttChartController.instance.toDate!
@@ -136,8 +136,9 @@ class ChartBars extends StatelessWidget {
                               onPointerDown: (event) async {
                                 GanttChartController.instance.contextIssueIndex = index;
                                 
-                                if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton && !issuesValue.selected)
+                                if (event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton && !issuesValue.selected) {
                                   GanttChartController.instance.issueSelect(issuesValue, GanttChartController.instance.issueList!);
+                                }
                               },
                               child: Container(
                                 decoration: BoxDecoration(
@@ -163,7 +164,7 @@ class ChartBars extends StatelessWidget {
                                 ),
                                 child: issuesValue.processing ? Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4),
-                                  child: Center(
+                                  child: const Center(
                                     child: AspectRatio(
                                       aspectRatio: 1,
                                       child: CircularProgressIndicator()
@@ -177,19 +178,19 @@ class ChartBars extends StatelessWidget {
                                         GanttChartController.instance.onIssueStartUpdate(issuesContext, details, constraints.biggest.width);
                                       },
                                       onPanDown: (details) {
-                                        GanttChartController.instance.onIssueStartPan(PanType.Start, details.globalPosition.dx);
+                                        GanttChartController.instance.onIssueStartPan(PanType.start, details.globalPosition.dx);
                                       },
                                       onPanCancel: () {
-                                        GanttChartController.instance.onIssuePanCancel(PanType.Start);
+                                        GanttChartController.instance.onIssuePanCancel(PanType.start);
                                       },
                                       onPanEnd: (details) async {
-                                        GanttChartController.instance.onIssueEndPan(PanType.Start);
+                                        GanttChartController.instance.onIssueEndPan(PanType.start);
                                       },
                                       child: Container(
                                         width: (issuesValue.remainingWidth! * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 < 15 ? (issuesValue.remainingWidth! * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 : 15,
                                         decoration: BoxDecoration(
                                           color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
-                                          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10), topLeft: Radius.circular(10)),
+                                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), topLeft: Radius.circular(10)),
                                         ),
                                       ),
                                     ),
@@ -201,13 +202,13 @@ class ChartBars extends StatelessWidget {
                                           GanttChartController.instance.onIssueDateUpdate(issuesContext, details, constraints.biggest.width);
                                         },
                                         onPanDown: (details) {
-                                          GanttChartController.instance.onIssueStartPan(PanType.Middle, details.globalPosition.dx);
+                                          GanttChartController.instance.onIssueStartPan(PanType.middle, details.globalPosition.dx);
                                         },
                                         onPanCancel: () {
-                                          GanttChartController.instance.onIssuePanCancel(PanType.Middle);
+                                          GanttChartController.instance.onIssuePanCancel(PanType.middle);
                                         },
                                         onPanEnd: (details) async {
-                                          GanttChartController.instance.onIssueEndPan(PanType.Middle);
+                                          GanttChartController.instance.onIssueEndPan(PanType.middle);
                                         },
                                         child: Container(
                                           alignment: Alignment.center,
@@ -216,7 +217,7 @@ class ChartBars extends StatelessWidget {
                                             issuesValue.title!,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(fontSize: 10.0),
+                                            style: const TextStyle(fontSize: 10.0),
                                           ),
                                         ),
                                       ),
@@ -227,19 +228,19 @@ class ChartBars extends StatelessWidget {
                                         GanttChartController.instance.onIssueEndUpdate(issuesContext, details, constraints.biggest.width);
                                       },
                                       onPanDown: (details) {
-                                        GanttChartController.instance.onIssueStartPan(PanType.End, details.globalPosition.dx);
+                                        GanttChartController.instance.onIssueStartPan(PanType.end, details.globalPosition.dx);
                                       },
                                       onPanCancel: () {
-                                        GanttChartController.instance.onIssuePanCancel(PanType.End);
+                                        GanttChartController.instance.onIssuePanCancel(PanType.end);
                                       },
                                       onPanEnd: (details) async {
-                                        GanttChartController.instance.onIssueEndPan(PanType.End);
+                                        GanttChartController.instance.onIssueEndPan(PanType.end);
                                       },
                                       child: Container(
                                         width: (issuesValue.remainingWidth! * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 < 15 ? (issuesValue.remainingWidth! * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 : 15,
                                         decoration: BoxDecoration(
                                           color: issuesValue.state == 'open' ? issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
-                                          borderRadius: BorderRadius.only(bottomRight: Radius.circular(10), topRight: Radius.circular(10)),
+                                          borderRadius: const BorderRadius.only(bottomRight: Radius.circular(10), topRight: Radius.circular(10)),
                                         ),
                                       ),
                                     ),
@@ -250,8 +251,9 @@ class ChartBars extends StatelessWidget {
                           ),
                         ],
                       );
-                    else
+                    } else {
                       return Container();
+                    }
                   }
                 ),
               );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Controller/GanttChartController.dart';
+import '../Controller/gantt_chart_controller.dart';
 
 class ChartHeader extends StatelessWidget {
   final Color color;
@@ -16,17 +16,17 @@ class ChartHeader extends StatelessWidget {
     DateTime tempDate = GanttChartController.instance.fromDate!;
 
     for (int i = 0; i < GanttChartController.instance.viewRange!.length; i++) {
-      headerItems.add(Container(
+      headerItems.add(SizedBox(
         width: GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!,
-        child: new Text(
+        child: Text(
           DateFormat('dd/MM/yyyy').format(tempDate),
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 10.0,
           ),
         ),
       ));
-      tempDate = tempDate.add(Duration(days: 1));
+      tempDate = tempDate.add(const Duration(days: 1));
     }
 
     return Container(

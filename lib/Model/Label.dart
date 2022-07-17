@@ -28,14 +28,14 @@ class Label {
 	}
 
 	Map<String, dynamic> toJson() {
-		final Map<String, dynamic> data = new Map<String, dynamic>();
-		data['id'] = this.id;
-		data['node_id'] = this.nodeId;
-		data['url'] = this.url;
-		data['name'] = this.name;
-		data['color'] = this.color;
-		data['default'] = this.isDefault;
-		data['description'] = this.description;
+		final Map<String, dynamic> data = <String, dynamic>{};
+		data['id'] = id;
+		data['node_id'] = nodeId;
+		data['url'] = url;
+		data['name'] = name;
+		data['color'] = color;
+		data['default'] = isDefault;
+		data['description'] = description;
 		return data;
 	}
 }

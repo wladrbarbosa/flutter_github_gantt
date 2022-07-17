@@ -1,18 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/Model/Assignees.dart';
-import 'package:flutter_github_gantt/Model/Label.dart';
-import 'package:flutter_github_gantt/Model/Milestone.dart';
-import 'package:flutter_github_gantt/View/NewIssueDialog.dart';
-import 'Controller/GanttChartController.dart';
-import 'Model/Issue.dart';
-import 'View/GanttChart.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/label.dart';
+import 'package:flutter_github_gantt/model/milestone.dart';
+import 'package:flutter_github_gantt/view/new_issue_dialog.dart';
+import 'controller/gantt_chart_controller.dart';
+import 'model/issue.dart';
+import 'view/gantt_chart.dart';
 
 class GanttChartApp extends StatefulWidget {
   final String? repo;
   final String token;
 
-  GanttChartApp({
+  const GanttChartApp({
+    super.key,
     this.repo,
     this.token = ''
   });
@@ -32,11 +33,12 @@ class DecrementIntent extends Intent {
 class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMixin {
   Future<void> chartScrollListener() async {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
-      if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4)
-        GanttChartController.instance.horizontalController.animateTo(GanttChartController.instance.horizontalController.position.pixels + (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign * (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)) / 0.001, duration: Duration(milliseconds: 100), curve: Curves.easeIn);
+      if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4) {
+        GanttChartController.instance.horizontalController.animateTo(GanttChartController.instance.horizontalController.position.pixels + (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign * (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)) / 0.001, duration: const Duration(milliseconds: 100), curve: Curves.easeIn);
+      }
     }
 
-    Future.delayed(Duration(milliseconds: 100), chartScrollListener);
+    Future.delayed(const Duration(milliseconds: 100), chartScrollListener);
   }
 
   @override
@@ -86,43 +88,43 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
                   GanttChartController.instance.rememberScrollPositions();
                   return GanttChart(snapshot.data!, issuesContext, Colors.blueAccent);
                 }
-                else
-                  return Container(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Não possui tarefas'
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            List<Assignee>? assignees = await GanttChartController.instance.assigneesListFuture;
-                            List<Label>? labels = await GanttChartController.instance.labelsListFuture;
-                            List<Milestone>? milestones = await GanttChartController.instance.milestoneListFuture;
+                else {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Não possui tarefas'
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          List<Assignee>? assignees = await GanttChartController.instance.assigneesListFuture;
+                          List<Label>? labels = await GanttChartController.instance.labelsListFuture;
+                          List<Milestone>? milestones = await GanttChartController.instance.milestoneListFuture;
 
-                            await showDialog(
-                              context: issuesContext,
-                              builder: (NewIssueDialogContext) {
-                                return NewIssueDialog(
-                                  assignees: assignees,
-                                  labels: labels,
-                                  milestones: milestones,
-                                );
-                              }
-                            );
-                          },
-                          child: Text(
-                            'Criar a primeira agora'
-                          ),
+                          await showDialog(
+                            context: issuesContext,
+                            builder: (newIssueDialogContext) {
+                              return NewIssueDialog(
+                                assignees: assignees,
+                                labels: labels,
+                                milestones: milestones,
+                              );
+                            }
+                          );
+                        },
+                        child: const Text(
+                          'Criar a primeira agora'
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
+                }
               }
-              else
-                return Center(
+              else {
+                return const Center(
                   child: CircularProgressIndicator()
                 );
+              }
             }
           )
         ),

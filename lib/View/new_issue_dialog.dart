@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/Controller/GanttChartController.dart';
-import 'package:flutter_github_gantt/Model/Assignees.dart';
-import 'package:flutter_github_gantt/Model/Issue.dart';
-import 'package:flutter_github_gantt/Model/Label.dart';
-import 'package:flutter_github_gantt/Model/Milestone.dart';
+import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/issue.dart';
+import 'package:flutter_github_gantt/model/label.dart';
+import 'package:flutter_github_gantt/model/milestone.dart';
 import 'package:intl/intl.dart';
 import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
 import 'package:multi_select_flutter/dialog/mult_select_dialog.dart';
@@ -24,10 +24,10 @@ class NewIssueDialog extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _NewIssueDialogState createState() => _NewIssueDialogState();
+  NewIssueDialogState createState() => NewIssueDialogState();
 }
 
-class _NewIssueDialogState extends State<NewIssueDialog> {
+class NewIssueDialogState extends State<NewIssueDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _bodyController;
@@ -83,10 +83,11 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
       }
     );
 
-    if (periodo != null)
+    if (periodo != null) {
       setState(() {
         _periodoDaTarefa = periodo;
       });
+    }
   }
 
   @override
@@ -112,7 +113,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                 children: [
                   TextFormField(
                     controller: _titleController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Nome da tarefa',
                     ),
                     // The validator receives the text that the user has entered.
@@ -125,7 +126,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   widget.issue != null ? Row(
                     children: [
-                      Text(
+                      const Text(
                         'Fechada?'
                       ),
                       Expanded(
@@ -147,13 +148,13 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   TextFormField(
                     controller: _bodyController,
                     maxLines: 10,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Descrição da tarefa',
                     ),
                   ),
                   DropdownButtonFormField<int>(
                     value: _selMilestone == null ? null : _selMilestone!.id,
-                    hint: Text(
+                    hint: const Text(
                       'Milestone',
                     ),
                     items: widget.milestones!.map<DropdownMenuItem<int>>((e) {
@@ -175,8 +176,9 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                       Expanded(
                         child: Listener(
                           onPointerUp: (details) async {
-                            if (!touchMoves)
+                            if (!touchMoves) {
                               selectPeriodo(mediaQuery);
+                            }
 
                             touchMoves = false;
                           },
@@ -195,8 +197,9 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                       Expanded(
                         child: Listener(
                           onPointerUp: (details) async {
-                            if (!touchMoves)
+                            if (!touchMoves) {
                               selectPeriodo(mediaQuery);
+                            }
 
                             touchMoves = false;
                           },
@@ -216,7 +219,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      if (!touchMoves)
+                      if (!touchMoves) {
                         await showDialog(
                           context: context,
                           builder: (ctx) {
@@ -226,17 +229,17 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                                 vertical: mediaQuery.size.height / 10,
                               ),
                               child: MultiSelectDialog<int>(
-                                cancelText: Text(
+                                cancelText: const Text(
                                   'Cancelar'
                                 ),
-                                confirmText: Text(
+                                confirmText: const Text(
                                   'Confirmar'
                                 ),
                                 selectedColor: Theme.of(context).primaryColor,
                                 unselectedColor: Colors.white,
                                 searchHint: 'Pesquisar',
-                                title: Text('Pesquisar'),
-                                itemsTextStyle: TextStyle(color: Colors.white),
+                                title: const Text('Pesquisar'),
+                                itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
                                 items: widget.assignees!.map<MultiSelectItem<int>>((e) {
@@ -255,6 +258,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             );
                           },
                         );
+                      }
 
                       touchMoves = false;
                     },
@@ -262,7 +266,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
-                      child: _selAssignees.length > 0 ? MultiSelectChipDisplay<Assignee>(
+                      child: _selAssignees.isNotEmpty ? MultiSelectChipDisplay<Assignee>(
                         height: 40,
                         scroll: true,
                         items: _selAssignees.map<MultiSelectItem<Assignee>>((e) {
@@ -271,7 +275,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             e.login!,
                           );
                         }).toList(),
-                      ) : Center(
+                      ) : const Center(
                         child: Text(
                           'Responsáveis'
                         ),
@@ -280,7 +284,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      if (!touchMoves)
+                      if (!touchMoves) {
                         await showDialog(
                           context: context,
                           builder: (ctx) {
@@ -290,17 +294,17 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                                 vertical: mediaQuery.size.height / 10,
                               ),
                               child: MultiSelectDialog<int>(
-                                cancelText: Text(
+                                cancelText: const Text(
                                   'Cancelar'
                                 ),
-                                confirmText: Text(
+                                confirmText: const Text(
                                   'Confirmar'
                                 ),
                                 searchHint: 'Pesquisar',
-                                title: Text('Pesquisar'),
+                                title: const Text('Pesquisar'),
                                 selectedColor: Theme.of(context).primaryColor,
                                 unselectedColor: Colors.white,
-                                itemsTextStyle: TextStyle(color: Colors.white),
+                                itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
                                 items: widget.labels!.map<MultiSelectItem<int>>((e) {
@@ -319,6 +323,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             );
                           },
                         );
+                      }
 
                       touchMoves = false;
                     },
@@ -326,7 +331,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
-                      child: _selLabels.length > 0 ? MultiSelectChipDisplay<Label>(
+                      child: _selLabels.isNotEmpty ? MultiSelectChipDisplay<Label>(
                         height: 40,
                         scroll: true,
                         items: _selLabels.map<MultiSelectItem<Label>>((e) {
@@ -335,7 +340,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             e.name!,
                           );
                         }).toList(),
-                      ) : Center(
+                      ) : const Center(
                         child: Text(
                           'Labels'
                         ),
@@ -344,7 +349,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                   ),
                   Listener(
                     onPointerUp: (details) async {
-                      if (!touchMoves)
+                      if (!touchMoves) {
                         await showDialog(
                           context: context,
                           builder: (ctx) {
@@ -354,17 +359,17 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                                 vertical: mediaQuery.size.height / 10,
                               ),
                               child: MultiSelectDialog<int>(
-                                cancelText: Text(
+                                cancelText: const Text(
                                   'Cancelar'
                                 ),
-                                confirmText: Text(
+                                confirmText: const Text(
                                   'Confirmar'
                                 ),
                                 searchHint: 'Pesquisar',
-                                title: Text('Pesquisar'),
+                                title: const Text('Pesquisar'),
                                 selectedColor: Theme.of(context).primaryColor,
                                 unselectedColor: Colors.white,
-                                itemsTextStyle: TextStyle(color: Colors.white),
+                                itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
                                 items: GanttChartController.instance.issueList!.map<MultiSelectItem<int>>((e) {
@@ -383,6 +388,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             );
                           },
                         );
+                      }
 
                       touchMoves = false;
                     },
@@ -390,7 +396,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                     child: Container(
                       height: 40,
                       color: Colors.transparent,
-                      child: _selDepIssues.length > 0 ? MultiSelectChipDisplay<int>(
+                      child: _selDepIssues.isNotEmpty ? MultiSelectChipDisplay<int>(
                         height: 40,
                         scroll: true,
                         items: _selDepIssues.map<MultiSelectItem<int>>((e) {
@@ -399,7 +405,7 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                             e.toString(),
                           );
                         }).toList(),
-                      ) : Center(
+                      ) : const Center(
                         child: Text(
                           'Dependências'
                         ),
@@ -413,15 +419,22 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                         alignment: Alignment.center,
                         minimumSize: Size(mediaQuery.size.width, 40.0)
                       ),
-                      onPressed: () async {
+                      onPressed: () {
+                        void closeDialog(String msg) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        }
+
                         if (_formKey.currentState!.validate()) {
-                          String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : DateTime.now())}\n'+
-                            'due_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : DateTime.now())}\n'+
-                            'progress: 0\n'+
-                            'parent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
+                          String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : DateTime.now())}\ndue_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : DateTime.now())}\nprogress: 0\nparent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
 
                           if (widget.issue != null) {
-                            await GanttChartController.instance.gitHub!.updateIssue(
+                            GanttChartController.instance.gitHub!.updateIssue(
                               widget.issue!,
                               _titleController.text,
                               metaInfo + _bodyController.text,
@@ -430,29 +443,22 @@ class _NewIssueDialogState extends State<NewIssueDialog> {
                               _selLabels,
                               _selDepIssues,
                               isClosed: _isClosed,
-                            );
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Tarefa editada com sucesso!')),
-                            );
+                            ).whenComplete(() {
+                              closeDialog('Tarefa editada com sucesso!');
+                            });
                           }
                           else {
-                            await GanttChartController.instance.gitHub!.createIssue(
+                            GanttChartController.instance.gitHub!.createIssue(
                               _titleController.text,
                               metaInfo + _bodyController.text,
                               _selMilestone == null ? null : _selMilestone!.number,
                               _selAssignees.map<String>((e) => e.login!).toList(),
                               _selLabels.map<String>((e) => e.name!).toList(),
                               isClosed: _isClosed,
-                            );
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Tarefa criada com sucesso!')),
-                            );
+                            ).whenComplete(() {
+                              closeDialog('Tarefa criada com sucesso!');
+                            });
                           }
-
-                          if (Navigator.of(context).canPop())
-                            Navigator.of(context).pop();
                         }
                       },
                       child: const Text('Confirmar'),
