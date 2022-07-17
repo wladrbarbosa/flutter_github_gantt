@@ -26,9 +26,9 @@ class DependencyLine extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     lineHorPos.removeWhere((el) => el['index'] == index);
 
-    double getAvailablePath(double value, Issue issue, double distanceToLeftBorder) {
-      if (lineHorPos.where((el) => (el['pos']!.abs() - (distanceToLeftBorder + value).abs()).abs() < 4).isNotEmpty) {
-        return getAvailablePath(value - 4, issue, distanceToLeftBorder);
+    double getAvailablePath(double value, Issue issue, double distanceToLeftBorderIssue) {
+      if (lineHorPos.indexWhere((el) => (el['pos'] == distanceToLeftBorderIssue + value)) > -1) {
+        return getAvailablePath(value - 4, issue, distanceToLeftBorderIssue);
       }
       else {
         return value;
@@ -39,25 +39,24 @@ class DependencyLine extends CustomPainter {
       List<Issue> depIssues = depIssuesNumbers.map<Issue>((e) => allIssue.singleWhere((el) => el.number == e)).toList();
       for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
-        double distanceToLeftBorder = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
+        double distanceToLeftBorderDep = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
+        double distanceToLeftBorderIssue = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
         
         if (indexDif > 0) {
-          double issueLeft = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) *
-            GanttChartController.instance.chartViewWidth /
-            GanttChartController.instance.viewRangeToFitScreen! + (
+          double issueLeft = distanceToLeftBorderIssue + (
               GanttChartController.instance.isPanStartActive ||
               GanttChartController.instance.isPanMiddleActive ?
                 issue.width :
                 0
             );
-          double depIssueLeft = distanceToLeftBorder + (
+          double depIssueLeft = distanceToLeftBorderDep + (
               GanttChartController.instance.isPanStartActive ||
               GanttChartController.instance.isPanMiddleActive ?
                 el.width :
                 0
             ) - 20;
 
-          double leftPos = getAvailablePath(-(issueLeft - depIssueLeft), el, distanceToLeftBorder);
+          double leftPos = getAvailablePath(-(issueLeft - depIssueLeft), el, distanceToLeftBorderIssue);
 
           canvas.drawPath(
             Path()..moveTo(
@@ -71,7 +70,7 @@ class DependencyLine extends CustomPainter {
               ..strokeCap = StrokeCap.round
               ..strokeWidth = 1,
           );
-          lineHorPos.add({'index': index, 'pos': distanceToLeftBorder + leftPos});
+          lineHorPos.add({'index': index, 'pos': distanceToLeftBorderIssue + leftPos});
         }
       }
     }
