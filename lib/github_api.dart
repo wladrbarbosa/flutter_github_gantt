@@ -111,7 +111,7 @@ class GitHubAPI {
 
   Future<void> awaitIssuesPages(int totalPages) async {
     if (pagesLoaded < totalPages) {
-      Log.show('d', '$pagesLoaded páginas carregadas de $totalPages. Aguardando 100 ms para continuar...');
+      Log.show('d', ' $pagesLoaded páginas carregadas de $totalPages. Aguardando 100 ms para continuar...');
       return await Future.delayed(const Duration(milliseconds: 100), () async => await awaitIssuesPages(totalPages));
     }
   }

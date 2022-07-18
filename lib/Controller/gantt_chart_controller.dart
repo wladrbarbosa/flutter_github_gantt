@@ -83,8 +83,8 @@ class GanttChartController extends ChangeNotifier {
 
   void rememberScrollPositions() {
     try {
+      GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.lastVerticalPos);
       GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.lastHorizontalPos);
-      GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.lastVerticalPos);
     } catch (e) {
       Future.delayed(const Duration(milliseconds: 100), rememberScrollPositions);
     }

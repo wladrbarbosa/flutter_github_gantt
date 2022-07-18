@@ -272,11 +272,11 @@ class GanttChart extends StatelessWidget {
 
                         if (details.scale > 1) {
                           GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
-                          GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
+                          GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
                         }
                         else {
                           GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen! * GanttChartController.instance.viewRange!.length * percent / 100);
-                          GanttChartController.instance.chartBarsController.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
+                          GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
                         }
 
                         GanttChartController.instance.update();
@@ -301,11 +301,11 @@ class GanttChart extends StatelessWidget {
 
                                         if (pointerSignal.scrollDelta.dy.sign < 0) {
                                           ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 + pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                          ganttChartValue.chartBarsController.jumpTo(ganttChartValue.chartBarsController.position.pixels);
+                                          ganttChartValue.controllers.jumpTo(ganttChartValue.chartBarsController.position.pixels);
                                         }
                                         else {
                                           ganttChartValue.horizontalController.jumpTo(ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! * ganttChartValue.viewRange!.length * percent / 100 - pointerSignal.position.dx.sign * ganttChartValue.chartViewWidth / ganttChartValue.viewRangeToFitScreen! / 2);
-                                          ganttChartValue.chartBarsController.jumpTo(ganttChartValue.chartBarsController.position.pixels);
+                                          ganttChartValue.controllers.jumpTo(ganttChartValue.chartBarsController.position.pixels);
                                         }
 
                                         ganttChartValue.update();
