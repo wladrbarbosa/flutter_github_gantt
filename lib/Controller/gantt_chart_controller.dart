@@ -349,16 +349,16 @@ class GanttChartController extends ChangeNotifier {
     }
 
     nodeAttachment = focus.attach(context, onKeyEvent: (node, event) {
-      if (isAltPressed != (event.physicalKey == PhysicalKeyboardKey.altLeft)) {
-        isAltPressed = (event.physicalKey == PhysicalKeyboardKey.altLeft);
+      if (event.physicalKey == PhysicalKeyboardKey.altLeft) {
+        isAltPressed = event is! KeyUpEvent;
       }
 
-      if (isShiftPressed != (event.physicalKey == PhysicalKeyboardKey.shiftLeft)) {
-        isShiftPressed = (event.physicalKey == PhysicalKeyboardKey.shiftLeft);
+      if (event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+        isShiftPressed = event is! KeyUpEvent;
       }
 
-      if (isCtrlPressed != (event.physicalKey == PhysicalKeyboardKey.controlLeft)) {
-        isCtrlPressed = (event.physicalKey == PhysicalKeyboardKey.controlLeft);
+      if (event.physicalKey == PhysicalKeyboardKey.controlLeft) {
+        isCtrlPressed = event is! KeyUpEvent;
       }
 
       update();
