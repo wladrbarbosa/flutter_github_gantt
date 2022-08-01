@@ -36,7 +36,7 @@ class DependencyLine extends CustomPainter {
     }
 
     if (depIssuesNumbers.isNotEmpty) {
-      List<Issue> depIssues = depIssuesNumbers.map<Issue>((e) => allIssue.singleWhere((el) => el.number == e)).toList();
+      List<Issue> depIssues = allIssue.where((el) => depIssuesNumbers.contains(el.number)).toList();
       for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
         double distanceToLeftBorderDep = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;

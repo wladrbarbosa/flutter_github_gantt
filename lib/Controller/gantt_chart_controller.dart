@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/label.dart';
 import 'package:flutter_github_gantt/model/milestone.dart';
@@ -52,7 +53,7 @@ class GanttChartController extends ChangeNotifier {
   List<RepoController> reposList = [];
   RepoController? repo;
   late FocusNode focus;
-  late FocusAttachment nodeAttachment;
+  FocusAttachment? nodeAttachment;
   User? user;
   DateTime? fromDate;
   DateTime? toDate;
@@ -342,26 +343,32 @@ class GanttChartController extends ChangeNotifier {
     horizontalController.addListener(onScrollChange);
   }
 
-  setContext(BuildContext context, double issueListFutureWidth) {
-    rootContext = context;
-    _issuesListWidth = issueListFutureWidth;
+  refreshFocusAttachment(BuildContext context) {
+    if (nodeAttachment != null && nodeAttachment!.isAttached) {
+      nodeAttachment!.detach();
+    }
 
-    nodeAttachment = focus.attach(context, onKey: (node, event) {
-      if (isAltPressed != event.isAltPressed) {
-        isAltPressed = event.isAltPressed;
+    nodeAttachment = focus.attach(context, onKeyEvent: (node, event) {
+      if (isAltPressed != (event.physicalKey == PhysicalKeyboardKey.altLeft)) {
+        isAltPressed = (event.physicalKey == PhysicalKeyboardKey.altLeft);
       }
 
-      if (isShiftPressed != event.isShiftPressed) {
-        isShiftPressed = event.isShiftPressed;
+      if (isShiftPressed != (event.physicalKey == PhysicalKeyboardKey.shiftLeft)) {
+        isShiftPressed = (event.physicalKey == PhysicalKeyboardKey.shiftLeft);
       }
 
-      if (isCtrlPressed != event.isControlPressed) {
-        isCtrlPressed = event.isControlPressed;
+      if (isCtrlPressed != (event.physicalKey == PhysicalKeyboardKey.controlLeft)) {
+        isCtrlPressed = (event.physicalKey == PhysicalKeyboardKey.controlLeft);
       }
 
       update();
       return KeyEventResult.handled;
     });
+  }
+
+  setContext(BuildContext context, double issueListFutureWidth) {
+    rootContext = context;
+    _issuesListWidth = issueListFutureWidth;
   }
   
   void update() {

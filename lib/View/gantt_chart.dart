@@ -30,7 +30,6 @@ class GanttChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Issue> filteredUserData = [];
-    GanttChartController.instance.nodeAttachment.reparent();
     lineColors.clear();
 
     for (int i = 0; i < userData.length; i++) {

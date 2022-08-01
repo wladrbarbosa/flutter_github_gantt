@@ -100,6 +100,7 @@ class MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     GanttChartController.instance.initialize();
+    GanttChartController.instance.refreshFocusAttachment(context);
     GanttChartController.instance.gitHub = GitHubAPI();
     _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
   }
@@ -107,13 +108,14 @@ class MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     if (GanttChartController.instance.rootContext == null) {
-      GanttChartController.instance.setContext(context, 520);
+      GanttChartController.instance.setContext(context, GanttChartController.instance.issuesListWidth);
     }
 
     if (MediaQuery.of(context).size.width < GanttChartController.instance.issuesListWidth) {
       GanttChartController.instance.setContext(context, MediaQuery.of(context).size.width);
     }
 
+    GanttChartController.instance.nodeAttachment!.reparent();
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     //
@@ -246,7 +248,7 @@ class MyHomePageState extends State<MyHomePage> {
                           hintText: 'Filtro...'
                         ),
                         onChanged: (value) async {
-                          GanttChartController.instance.update();
+                          GanttChartController.instance.repo!.update();
                         },
                       ),
                     ),
