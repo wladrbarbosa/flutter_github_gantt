@@ -26,7 +26,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter 
   intl: ^0.17.0
-  http: ^0.13.4
+  http: ^0.13.5
   provider: ^6.0.3
   linked_scroll_controller: ^0.2.0
   let_log:
@@ -37,7 +37,7 @@ dependencies:
   shared_preferences: ^2.0.13
   url_launcher: ^6.1.5
   multi_select_flutter: ^4.0.0
-  dcdg: ^4.0.1
+  dcdg: ^4.1.0
   collection: ^1.16.0
 
 dev_dependencies:
