@@ -31,7 +31,7 @@ class About extends StatelessWidget {
                         TextSpan(
                           text: 'Aplicação para organizar tarefas (issues) do GitHub em um gráfico de gantt, usando a descrição das próprias tarefas como forma de persistir informações pertinentes a ele. Além disso, foi usada a API do GitHub para facilitar o acesso à funções como edição, criação e deleção de tarefas diretamente por aqui através do uso de tokens de acesso.\n\n',
                           style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyText1!.color,
+                            color: Theme.of(context).textTheme.bodyLarge!.color,
                             fontWeight: FontWeight.w500,
                             fontSize: 14
                           )

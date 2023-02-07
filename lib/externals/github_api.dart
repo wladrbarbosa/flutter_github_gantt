@@ -8,11 +8,11 @@ import 'package:flutter_github_gantt/model/rate_limit.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'controller/gantt_chart_controller.dart';
-import 'controller/repo_controller.dart';
+import '../controller/gantt_chart_controller.dart';
+import '../controller/repo_controller.dart';
 import 'log.dart';
-import 'model/issue.dart';
-import 'model/user.dart';
+import '../model/issue.dart';
+import '../model/user.dart';
 
 class GitHubAPI {
   String? userToken;
@@ -142,17 +142,24 @@ class GitHubAPI {
           DateTime? startTime;
           DateTime? endTime;
 
+          String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!;
+          String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!;
+
           try {
-            startTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
-            endTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
+            startTime = DateFormat('yyyy/M/d${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
+            endTime = DateFormat('yyyy/M/d${dueDate.contains(':') ? ' HH:mm:ss' : ''}').parse(dueDate);
           } catch (e) {
             try {
-              startTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);
-              endTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!);  
+              startTime = DateFormat('yyyy/MM/dd${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
+              endTime = DateFormat('yyyy/MM/dd${dueDate.contains(':') ? ' HH:mm:ss' : ''}').parse(dueDate);  
             } catch (e) {
               startTime = DateTime.now();
               endTime = DateTime.now();
             }
+          }
+
+          if (endTime.hour == 0 && endTime.minute == 0 && endTime.second == 0) {
+            endTime = endTime.add(const Duration(days: 1));
           }
 
           if (chartStart == null) {
@@ -345,8 +352,8 @@ class GitHubAPI {
 
   Future<Issue> updateIssueTime(Issue currentUssue) async {
     if (currentUssue.body != null) {
-      currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd').format(currentUssue.startTime!));
-      currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd').format(currentUssue.endTime!));
+      currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd HH:mm:ss').format(currentUssue.startTime!));
+      currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd HH:mm:ss').format(currentUssue.endTime!));
     }
 
     dynamic issue = await gitHubRequest<dynamic>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${currentUssue.number}', method: 'PATCH', body: {"body": currentUssue.body});
@@ -354,13 +361,16 @@ class GitHubAPI {
     DateTime? startTime;
     DateTime? endTime;
 
+    String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!;
+    String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!;
+
     try {
-      startTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!);
-      endTime = DateFormat('yyyy/M/d').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!);
+      startTime = DateFormat('yyyy/M/d${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
+      endTime = DateFormat('yyyy/M/d${dueDate.contains(':') ? ' HH:mm:ss' : ''}').parse(dueDate);
     } catch (e) {
       try {
-        startTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!);
-        endTime = DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!);  
+        startTime = DateFormat('yyyy/MM/dd${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
+        endTime = DateFormat('yyyy/MM/dd${dueDate.contains(':') ? ' HH:mm:ss' : ''}').parse(dueDate);  
       } catch (e) {
         startTime = DateTime.now();
         endTime = DateTime.now();

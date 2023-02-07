@@ -1,25 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/model/assignees.dart';
-import 'package:flutter_github_gantt/model/label.dart';
-import 'package:flutter_github_gantt/model/milestone.dart';
 import 'package:flutter_github_gantt/view/new_issue_dialog.dart';
-import 'controller/gantt_chart_controller.dart';
-import 'model/issue.dart';
-import 'view/gantt_chart.dart';
+import '../controller/gantt_chart_controller.dart';
+import '../model/issue.dart';
+import '../view/chart_page.dart';
 
-class GanttChartApp extends StatefulWidget {
+class RepoWidget extends StatefulWidget {
   final String? repo;
   final String token;
 
-  const GanttChartApp({
+  const RepoWidget({
     super.key,
     this.repo,
     this.token = ''
   });
 
   @override
-  GanttChartAppState createState() => GanttChartAppState();
+  RepoWidgetState createState() => RepoWidgetState();
 }
 
 class IncrementIntent extends Intent {
@@ -30,7 +27,7 @@ class DecrementIntent extends Intent {
   const DecrementIntent();
 }
 
-class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMixin {
+class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
   Future<void> chartScrollListener() async {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
       if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4) {
@@ -64,7 +61,7 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
   }
 
   @override                               
-  void didUpdateWidget(GanttChartApp oldWidget) {
+  void didUpdateWidget(RepoWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.repo != oldWidget.repo || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList) {
@@ -77,58 +74,60 @@ class GanttChartAppState extends State<GanttChartApp> with TickerProviderStateMi
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: FutureBuilder<List<Issue>>(
-            future: GanttChartController.instance.issueListFuture,
-            builder: (issuesContext, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasData) {
-                  GanttChartController.instance.rememberScrollPositions();
-                  return GanttChart(snapshot.data!, issuesContext, Colors.blueAccent);
-                }
-                else {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Não possui tarefas'
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          List<Assignee>? assignees = await GanttChartController.instance.assigneesListFuture;
-                          List<Label>? labels = await GanttChartController.instance.labelsListFuture;
-                          List<Milestone>? milestones = await GanttChartController.instance.milestoneListFuture;
-
-                          await showDialog(
-                            context: issuesContext,
-                            builder: (newIssueDialogContext) {
-                              return NewIssueDialog(
-                                assignees: assignees,
-                                labels: labels,
-                                milestones: milestones,
-                              );
-                            }
+    return FutureBuilder<List<Issue>>(
+      future: GanttChartController.instance.issueListFuture,
+      builder: (issuesContext, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.hasData) {
+            GanttChartController.instance.rememberScrollPositions();
+            return ChartPage(
+              snapshot.data!,
+              issuesContext,
+              Colors.blueAccent
+            );
+          }
+          else {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Não possui tarefas'
+                ),
+                TextButton(
+                  onPressed: () {
+                    Future.wait<dynamic>(
+                      [
+                        GanttChartController.instance.assigneesListFuture!,
+                        GanttChartController.instance.labelsListFuture!,
+                        GanttChartController.instance.milestoneListFuture!
+                      ]
+                    ).then((value) async {
+                      await showDialog(
+                        context: issuesContext,
+                        builder: (newIssueDialogContext) {
+                          return NewIssueDialog(
+                            assignees: value[0],
+                            labels: value[1],
+                            milestones: value[2],
                           );
-                        },
-                        child: const Text(
-                          'Criar a primeira agora'
-                        ),
-                      ),
-                    ],
-                  );
-                }
-              }
-              else {
-                return const Center(
-                  child: CircularProgressIndicator()
-                );
-              }
-            }
-          )
-        ),
-      ],
+                        }
+                      );
+                    });
+                  },
+                  child: const Text(
+                    'Criar a primeira agora'
+                  ),
+                ),
+              ],
+            );
+          }
+        }
+        else {
+          return const Center(
+            child: CircularProgressIndicator()
+          );
+        }
+      }
     );
   }
 }

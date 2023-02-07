@@ -39,8 +39,8 @@ class DependencyLine extends CustomPainter {
       List<Issue> depIssues = allIssue.where((el) => depIssuesNumbers.contains(el.number)).toList();
       for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
-        double distanceToLeftBorderDep = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
-        double distanceToLeftBorderIssue = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!;
+        double distanceToLeftBorderDep = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewByViewRange;
+        double distanceToLeftBorderIssue = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) * GanttChartController.instance.chartViewByViewRange;
         
         if (indexDif > 0) {
           double issueLeft = distanceToLeftBorderIssue + (
@@ -133,7 +133,7 @@ class ChartBarsDependencyLines extends StatelessWidget {
                             width: GanttChartController.instance.calculateNumberOfDaysBetween(
                               GanttChartController.instance.fromDate!,
                               GanttChartController.instance.toDate!
-                            ).length * GanttChartController.instance.chartViewWidth / GanttChartController.instance.viewRangeToFitScreen!,
+                            ).length * GanttChartController.instance.chartViewByViewRange,
                             height: (data.length * 34) - 4,
                           ),
                         ),
