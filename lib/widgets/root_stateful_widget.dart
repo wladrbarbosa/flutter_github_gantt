@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
 import 'package:flutter_github_gantt/controller/repo_controller.dart';
 import 'package:flutter_github_gantt/widgets/repo_widget.dart';
@@ -181,6 +182,13 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                         value: GanttChartController.instance.repo,
                         child: Consumer<RepoController?>(
                           builder: (repoContext, repoValue, child) {
+                            Configs.initializeConfigs();
+                            
+                            GanttChartController.instance.viewRange = GanttChartController.instance.calculateNumberOfDaysBetween(
+                              GanttChartController.instance.fromDate!,
+                              GanttChartController.instance.toDate!
+                            );
+
                             return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: RepoWidget(

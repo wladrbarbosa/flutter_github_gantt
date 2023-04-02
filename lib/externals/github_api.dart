@@ -192,12 +192,10 @@ class GitHubAPI {
     await awaitIssuesPages(numberOfPages);
 
     refreshIssuesList = false;
-    GanttChartController.instance.fromDate = chartStart!.subtract(const Duration(days: 5));
-    GanttChartController.instance.toDate = chartEnd!.add(const Duration(days: 5));
-    GanttChartController.instance.viewRange = GanttChartController.instance.calculateNumberOfDaysBetween(
-      GanttChartController.instance.fromDate!,
-      GanttChartController.instance.toDate!
-    );
+    DateTime fromDate = chartStart!.subtract(const Duration(days: 5));
+    GanttChartController.instance.fromDate = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    DateTime toDate = chartEnd!.add(const Duration(days: 5));
+    GanttChartController.instance.toDate = DateTime(toDate.year, toDate.month, toDate.day);
     return responseLits;
   }
   

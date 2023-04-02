@@ -26,6 +26,17 @@ class ChartBars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    DateTime now = DateTime.now();
+    now = now.subtract(
+      Duration(
+        hours: now.hour % 3,
+        minutes: now.minute,
+        seconds: now.second,
+        milliseconds: now.millisecond,
+        microseconds: now.microsecond,
+      )
+    );
+
     return Container(
       margin: const EdgeInsets.only(top: 30.0),
       child: ListView.builder(
@@ -57,7 +68,7 @@ class ChartBars extends StatelessWidget {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 && issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple.withAlpha(100) : Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
+                          color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) <= 0 && issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) <= 0 ? Colors.purple.withAlpha(100) : Colors.red.withAlpha(100) : Colors.green.withAlpha(100),
                           borderRadius: BorderRadius.circular(10.0),
                           border: Border.all(
                             color: Colors.yellow,
@@ -66,7 +77,6 @@ class ChartBars extends StatelessWidget {
                           )
                         ),
                         height: 30.0,
-                        width: issuesValue.remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0),
                         margin: EdgeInsets.only(
                           left: GanttChartController.instance.calculateDistanceToLeftBorder(issuesValue.startTime!) *
                               GanttChartController.instance.chartViewByViewRange + (GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanMiddleActive ? issuesValue.width : 0) + 2,
@@ -102,7 +112,7 @@ class ChartBars extends StatelessWidget {
                               child: Container(
                                 width: (issuesValue.remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 < 15 ? (issuesValue.remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 : 15,
                                 decoration: BoxDecoration(
-                                  color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
+                                  color: issuesValue.state == 'open' ? issuesValue.startTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) < 0 ? Colors.purple : Colors.red : Colors.green,
                                   borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), topLeft: Radius.circular(10)),
                                 ),
                               ),
@@ -152,7 +162,7 @@ class ChartBars extends StatelessWidget {
                               child: Container(
                                 width: (issuesValue.remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 < 15 ? (issuesValue.remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? issuesValue.width : GanttChartController.instance.isPanEndActive ? -issuesValue.width : 0)) / 2 - 1 : 15,
                                 decoration: BoxDecoration(
-                                  color: issuesValue.state == 'open' ? issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd').parse(DateFormat('yyyy/MM/dd').format(DateTime.now()))) < 0 ? Colors.purple : Colors.red : Colors.green,
+                                  color: issuesValue.state == 'open' ? issuesValue.endTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) <= 0 ? Colors.purple : Colors.red : Colors.green,
                                   borderRadius: const BorderRadius.only(bottomRight: Radius.circular(10), topRight: Radius.circular(10)),
                                 ),
                               ),

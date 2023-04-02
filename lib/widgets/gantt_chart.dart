@@ -23,14 +23,14 @@ class GanttChart extends StatelessWidget {
 
   static void scale(double deltaX, double deltaY) {
     double percent = GanttChartController.instance.horizontalController.position.pixels * 100 / (GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length);
-    GanttChartController.instance.viewRangeToFitScreen = GanttChartController.instance.viewRangeToFitScreen! + deltaY.sign;
+    GanttChartController.instance.viewRangeToFitScreen = GanttChartController.instance.viewRangeToFitScreen! + deltaY;
 
     if (deltaY.sign < 0) {
-      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 + deltaX.sign * GanttChartController.instance.chartViewByViewRange / 2);
+      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 + deltaX * GanttChartController.instance.chartViewByViewRange / 2);
       GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
     }
     else {
-      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 - deltaX.sign * GanttChartController.instance.chartViewByViewRange / 2);
+      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 - deltaX * GanttChartController.instance.chartViewByViewRange / 2);
       GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
     }
 
@@ -48,8 +48,11 @@ class GanttChart extends StatelessWidget {
           GanttChartController.instance.viewRangeOnScale = GanttChartController.instance.viewRangeToFitScreen;
         },
         onScaleUpdate: (details) {
-          if (GanttChartController.instance.viewRangeToFitScreen! > 1 || details.scale < 1) {
-            scale(details.scale, details.scale);
+          num scaleFactor = (details.scale - 1).sign;
+
+          if ((_ganttChartController.viewRangeToFitScreen! > 1 || scaleFactor > 0) &&
+            (_ganttChartController.viewRangeToFitScreen! <= 55 || scaleFactor < 0)) {
+              scale(scaleFactor / 10, scaleFactor / 10);
           }
         },
         child: LayoutBuilder(
@@ -65,9 +68,10 @@ class GanttChart extends StatelessWidget {
                     child: Listener(
                       onPointerSignal: (pointerSignal){
                         if(pointerSignal is PointerScrollEvent && _ganttChartController.isAltPressed){
-                          if (_ganttChartController.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) {
-                            scale(pointerSignal.scrollDelta.dx, pointerSignal.scrollDelta.dy);
-                          }
+                            if ((_ganttChartController.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
+                              (_ganttChartController.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
+                                scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
+                            }
                         }
                       },
                       onPointerDown: (event) async => await _ganttChartController.onPointerDown(event, chartContext),

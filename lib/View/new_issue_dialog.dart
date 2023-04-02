@@ -36,6 +36,8 @@ class NewIssueDialogState extends State<NewIssueDialog> {
   List<int> _selDepIssues = [];
   Milestone? _selMilestone;
   DateTimeRange? _periodoDaTarefa = DateTimeRange(start: DateTime.now(), end: DateTime.now());
+  late TimeOfDay _horaInicioDaTarefa;
+  late TimeOfDay _horaFimDaTarefa;
   bool _haveTiming = false;
   bool _isClosed = false;
   bool touchMoves = false;
@@ -54,12 +56,16 @@ class NewIssueDialogState extends State<NewIssueDialog> {
       _selDepIssues = widget.issue!.dependencies;
       
       _periodoDaTarefa = DateTimeRange(
-        start: DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=start_date: ).*').stringMatch(widget.issue!.body!)!),
-        end: DateFormat('yyyy/MM/dd').parse(RegExp(r'(?<=due_date: ).*').stringMatch(widget.issue!.body!)!),
+        start: DateFormat('yyyy/MM/dd HH:mm:ss').parse(RegExp(r'(?<=start_date: ).*').stringMatch(widget.issue!.body!)!),
+        end: DateFormat('yyyy/MM/dd HH:mm:ss').parse(RegExp(r'(?<=due_date: ).*').stringMatch(widget.issue!.body!)!),
       );
+      _horaInicioDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.start);
+      _horaFimDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.end);
     }
     else {
       _selAssignees.add(widget.assignees!.singleWhere((el) => el.login == GanttChartController.instance.user!.login));
+      _horaInicioDaTarefa = TimeOfDay.now();
+      _horaFimDaTarefa = TimeOfDay.now();
     }
 
     super.initState();
@@ -67,7 +73,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
 
   void selectPeriodo(MediaQueryData mediaQuery) async {
     DateTime today = DateTime.now();
-                            
+
     DateTimeRange? periodo = await showDateRangePicker(
       context: context,
       currentDate: today,
@@ -91,6 +97,14 @@ class NewIssueDialogState extends State<NewIssueDialog> {
         _periodoDaTarefa = periodo;
       });
     }
+  }
+
+  Future<TimeOfDay?> selectHora(MediaQueryData mediaQuery) async {
+    return await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      initialEntryMode: TimePickerEntryMode.dialOnly,
+    );
   }
 
   @override
@@ -156,7 +170,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                     ),
                   ),
                   DropdownButtonFormField<int>(
-                    value: _selMilestone == null ? widget.milestones![0].id : _selMilestone!.id,
+                    value: _selMilestone == null ? widget.milestones!.isNotEmpty ? widget.milestones![0].id : null : _selMilestone!.id,
                     hint: const Text(
                       'Milestone',
                     ),
@@ -197,6 +211,9 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                           ),
                         ),
                       ),
+                      const Text(
+                        'à'
+                      ),
                       Expanded(
                         child: Listener(
                           onPointerUp: (details) async {
@@ -213,6 +230,64 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                             child: Center(
                               child: Text(
                                 _periodoDaTarefa != null ? DateFormat('dd/MM/yyyy').format(_periodoDaTarefa!.end) : 'Fim'
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Listener(
+                          onPointerUp: (details) async {
+                            if (!touchMoves) {
+                              selectHora(mediaQuery).then((value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _horaInicioDaTarefa = value;
+                                  });
+                                }
+                              });
+                            }
+
+                            touchMoves = false;
+                          },
+                          onPointerMove: (details) => touchMoves = true,
+                          child: Container(
+                            height: 40,
+                            color: Colors.transparent,
+                            child: Center(
+                              child: Text(
+                                DateFormat('HH:mm:ss').format(DateTime(2023, 1, 8, _horaInicioDaTarefa.hour, _horaInicioDaTarefa.minute, 0))
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Listener(
+                          onPointerUp: (details) async {
+                            if (!touchMoves) {
+                              selectHora(mediaQuery).then((value) {
+                                if (value != null) {
+                                  setState(() {
+                                    _horaFimDaTarefa = value;
+                                  });
+                                }
+                              });
+                            }
+
+                            touchMoves = false;
+                          },
+                          onPointerMove: (details) => touchMoves = true,
+                          child: Container(
+                            height: 40,
+                            color: Colors.transparent,
+                            child: Center(
+                              child: Text(
+                                DateFormat('HH:mm:ss').format(DateTime(2023, 1, 8, _horaFimDaTarefa.hour, _horaFimDaTarefa.minute, 0))
                               ),
                             ),
                           ),
@@ -434,7 +509,29 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                         }
 
                         if (_formKey.currentState!.validate()) {
-                          String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : DateTime.now())}\ndue_date: ${DateFormat('yyyy/MM/dd').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : DateTime.now())}\nprogress: 0\nparent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
+                          DateTime inicio = DateTime.now();
+                          inicio = inicio.subtract(
+                            Duration(
+                              hours: inicio.hour % 3,
+                              minutes: inicio.minute,
+                              seconds: inicio.second,
+                              milliseconds: inicio.millisecond,
+                              microseconds: inicio.microsecond,
+                            )
+                          );
+                          DateTime fim = inicio;
+                          fim = fim.subtract(
+                            Duration(
+                              hours: -(3 - inicio.hour % 3),
+                              minutes: fim.minute,
+                              seconds: fim.second,
+                              milliseconds: fim.millisecond,
+                              microseconds: fim.microsecond,
+                            )
+                          );
+
+                          _periodoDaTarefa = DateTimeRange(start: inicio, end: fim);
+                          String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : inicio)}\ndue_date: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : fim)}\nprogress: 0\nparent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
 
                           if (widget.issue != null) {
                             GanttChartController.instance.gitHub!.updateIssue(

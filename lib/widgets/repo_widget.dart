@@ -31,11 +31,18 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
   Future<void> chartScrollListener() async {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
       if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4) {
-        GanttChartController.instance.horizontalController.animateTo(GanttChartController.instance.horizontalController.position.pixels + (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign * (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)) / 0.001, duration: const Duration(milliseconds: 100), curve: Curves.easeIn);
+        GanttChartController.instance.horizontalController.animateTo(
+          GanttChartController.instance.horizontalController.position.pixels +
+            (
+              GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign *
+              (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)
+            ) /
+            0.001, duration: const Duration(milliseconds: 25), curve: Curves.easeIn
+        );
       }
     }
 
-    Future.delayed(const Duration(milliseconds: 100), chartScrollListener);
+    Future.delayed(const Duration(milliseconds: 25), chartScrollListener);
   }
 
   @override

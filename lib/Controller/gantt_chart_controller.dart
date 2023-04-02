@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/externals/github_api.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/label.dart';
@@ -26,7 +27,7 @@ enum PanType {
 class GanttChartController extends ChangeNotifier {
   double _issuesListWidth = 520;
   double? viewRangeOnScale = 0;
-  double? viewRangeToFitScreen = 15;
+  double? viewRangeToFitScreen = 20;
   List<DateTime>? viewRange;
   Color? userColor;
   double initX = 0;
@@ -89,7 +90,10 @@ class GanttChartController extends ChangeNotifier {
   void rememberScrollPositions() {
     try {
       GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.lastVerticalPos);
-      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.lastHorizontalPos);
+      
+      if (GanttChartController.instance.horizontalController.hasClients) {
+        GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.lastHorizontalPos);
+      }
     } catch (e) {
       Future.delayed(const Duration(milliseconds: 100), rememberScrollPositions);
     }
@@ -131,7 +135,7 @@ class GanttChartController extends ChangeNotifier {
 
   void _onGridPointerDown(PointerEvent event, BuildContext context) {
     // Check if right mouse button clicked
-    if ((event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) || (onPointerDownTime != null && DateTime.now().difference(onPointerDownTime!).inMilliseconds >= 300)) {
+    if ((event.kind == PointerDeviceKind.mouse && event.buttons == kSecondaryMouseButton) || (onPointerDownTime != null && DateTime.now().difference(onPointerDownTime!).inMilliseconds >= 500)) {
       RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
       showMenu<int>(
         context: context,
@@ -190,7 +194,7 @@ class GanttChartController extends ChangeNotifier {
 
     do {
       period.add(currentDate);
-      currentDate = currentDate.add(const Duration(hours: 3));
+      currentDate = currentDate.add(Configs.graphColumnsPeriod);
     } while (currentDate.compareTo(to) < 0);
     
     return period;
@@ -311,31 +315,37 @@ class GanttChartController extends ChangeNotifier {
 
   void onScrollChange() {
     for (int i = 0; i < selectedIssues.length; i++) {
-      bool overLimits = false;
-      bool underLimits = false;
+      bool overChartLimits = false;
+      bool underChartLimits = false;
 
       if (selectedIssues[i]!.dragPosFactor.abs() >= 0.4 && selectedIssues[i] != null) {
+        Log.show('d', 'selectedIssues[i]!.width ${selectedIssues[i]!.width}');
+
         if (isPanStartActive || (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0)) {
-          //Verifica se não tem perídodo menor do que 1 dia 
-          overLimits = selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) >= chartViewByViewRange;
-          underLimits = calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) <= horizontalController.position.pixels;
+          overChartLimits = calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewByViewRange - selectedIssues[i]!.width - (horizontalController.position.pixels - lastScrollPos) <= 0;
+          underChartLimits = calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) <= horizontalController.position.pixels;
         }
         
         if (isPanEndActive || (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0)) {
-          overLimits = overLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) <= chartViewByViewRange;
-          overLimits = overLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange >= viewRange!.length * chartViewByViewRange;
-          overLimits = overLimits || calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewByViewRange - selectedIssues[i]!.width - (horizontalController.position.pixels - lastScrollPos) <= 0;
-          underLimits = underLimits || calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) + (selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange) <= horizontalController.position.pixels;
+          overChartLimits = overChartLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) <= chartViewByViewRange;
+          overChartLimits = overChartLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange >= viewRange!.length * chartViewByViewRange;
+          overChartLimits = overChartLimits || calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewByViewRange - selectedIssues[i]!.width - (horizontalController.position.pixels - lastScrollPos) <= 0;
+          underChartLimits = underChartLimits || calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.position.pixels - lastScrollPos) + (selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange) <= horizontalController.position.pixels;
         }
 
-        if (overLimits && !underLimits) {
-          selectedIssues[i]!.dragPosFactor = 0;
-          selectedIssues[i]!.width = (calculateDistanceToRightBorder(selectedIssues[i]!.endTime!)) * chartViewByViewRange;
+        if (overChartLimits && !underChartLimits) {
+          selectedIssues[i]!.width = (calculateDistanceToRightBorder(selectedIssues[i]!.endTime!)) * chartViewByViewRange - horizontalController.position.pixels;
+          //Log.show('d', 'overLimits && !underLimits selectedIssues[i]!.width ${selectedIssues[i]!.width}');
+          //Log.show('d', 'selectedIssues[i]!.remainingWidth! ${selectedIssues[i]!.remainingWidth!}');
+          //Log.show('d', 'GanttChartController.instance.chartViewByViewRange ${GanttChartController.instance.chartViewByViewRange}');
         }
-        else if (underLimits && !overLimits) {
+        else if (underChartLimits && !overChartLimits) {
           selectedIssues[i]!.width = -(calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange - horizontalController.position.pixels);
+          //Log.show('d', 'underLimits && !overLimits selectedIssues[i]!.width ${selectedIssues[i]!.width}');
+          //Log.show('d', 'selectedIssues[i]!.remainingWidth! ${selectedIssues[i]!.remainingWidth!}');
+          //Log.show('d', 'GanttChartController.instance.chartViewByViewRange ${GanttChartController.instance.chartViewByViewRange}');
         }
-        else if (!underLimits && !overLimits) {
+        else if (!underChartLimits && !overChartLimits) {
           selectedIssues[i]!.width += horizontalController.position.pixels - lastScrollPos;
         }
       }
@@ -401,6 +411,7 @@ class GanttChartController extends ChangeNotifier {
         }
       }
       else {
+        selectedIssues[j]!.dragPosFactor = 0;
         selectedIssues[j]!.width = (selectedIssues[j]!.remainingWidth! - 1) * chartViewByViewRange;
       }
     }
@@ -419,6 +430,7 @@ class GanttChartController extends ChangeNotifier {
         }
       }
       else {
+        selectedIssues[j]!.dragPosFactor = 0;
         selectedIssues[j]!.width = (selectedIssues[j]!.remainingWidth! - 1) * chartViewByViewRange;
       }
     }

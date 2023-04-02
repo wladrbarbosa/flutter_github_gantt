@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/configs.dart';
 import 'package:intl/intl.dart';
 import '../controller/gantt_chart_controller.dart';
 
@@ -12,12 +13,12 @@ class ChartHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double columnsPerDay = (24 * 60 / Configs.graphColumnsPeriod.inMinutes);
     List<Widget> headerDays = <Widget>[];
     List<Widget> headerHours = <Widget>[];
-    DateTime tempDate = GanttChartController.instance.fromDate!;
 
     for (int i = 0; i < GanttChartController.instance.viewRange!.length; i++) {
-      if (i % 8 == 0) {
+      if (i % columnsPerDay == 0) {
         headerDays.add(Container(
           decoration: BoxDecoration(
             border: Border(
@@ -27,9 +28,9 @@ class ChartHeader extends StatelessWidget {
               ),
             )
           ),
-          width: GanttChartController.instance.chartViewByViewRange * 8,
+          width: GanttChartController.instance.chartViewByViewRange * (24 * 60 / Configs.graphColumnsPeriod.inMinutes),
           child: Text(
-            DateFormat('dd/MM/yyyy').format(tempDate),
+            DateFormat('dd/MM/yyyy').format(GanttChartController.instance.viewRange![i]),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 10.0,
@@ -41,7 +42,7 @@ class ChartHeader extends StatelessWidget {
       headerHours.add(Container(
         decoration: BoxDecoration(
           border: Border(
-            left: i % 8 == 0 ? BorderSide(
+            left: i % columnsPerDay == 0 ? BorderSide(
               color: Colors.white.withAlpha(400),
               width: 0.5,
             ) : BorderSide.none,
@@ -49,14 +50,13 @@ class ChartHeader extends StatelessWidget {
         ),
         width: GanttChartController.instance.chartViewByViewRange,
         child: Text(
-          '${DateFormat('HH').format(tempDate)}h',
+          '${DateFormat('HH:mm').format(GanttChartController.instance.viewRange![i])}h',
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 10.0,
           ),
         ),
       ));
-      tempDate = tempDate.add(const Duration(hours: 3));
     }
 
     return Container(
