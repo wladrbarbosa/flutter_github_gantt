@@ -32,7 +32,7 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
       if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4) {
         GanttChartController.instance.horizontalController.animateTo(
-          GanttChartController.instance.horizontalController.position.pixels +
+          GanttChartController.instance.horizontalController.offset +
             (
               GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign *
               (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)
@@ -48,13 +48,13 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    GanttChartController.instance.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.instance.issueList = value);
+    GanttChartController.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.issueList = value);
     GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
     GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
     GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     chartScrollListener();
-    GanttChartController.instance.horizontalController.addListener(() {
-      GanttChartController.instance.lastHorizontalPos = GanttChartController.instance.horizontalController.position.pixels;
+    GanttChartController.instance.horizontalController.addOffsetChangedListener(() {
+      GanttChartController.instance.lastHorizontalPos = GanttChartController.instance.horizontalController.offset;
     });
     GanttChartController.instance.chartBarsController.addListener(() {
       GanttChartController.instance.lastVerticalPos = GanttChartController.instance.chartBarsController.position.pixels;
@@ -69,26 +69,27 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
 
   @override                               
   void didUpdateWidget(RepoWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
     if (widget.repo != oldWidget.repo || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList) {
-      GanttChartController.instance.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.instance.issueList = value);
+      GanttChartController.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.issueList = value);
       GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
       GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
       GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     }
+
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Issue>>(
-      future: GanttChartController.instance.issueListFuture,
+      future: GanttChartController.issueListFuture,
       builder: (issuesContext, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          if (snapshot.hasData) {
+          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
             GanttChartController.instance.rememberScrollPositions();
+
             return ChartPage(
-              snapshot.data!,
+              GanttChartController.issueList!,
               issuesContext,
               Colors.blueAccent
             );

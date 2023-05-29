@@ -12,7 +12,7 @@ class InitialApp extends StatelessWidget {
     return MaterialApp(
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [
-        Locale('pt', 'BR'), // Brazillian Portuguese, no country code
+        Locale('pt', 'BR'), // Brazillian Portuguese
         Locale('en', ''), // English, no country code
         Locale('es', ''), // Spanish, no country code
       ],

@@ -1,7 +1,5 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/configs.dart';
-import 'package:flutter_github_gantt/widgets/gantt_chart.dart';
 import 'package:intl/intl.dart';
 import '../controller/gantt_chart_controller.dart';
 
@@ -12,12 +10,11 @@ class ChartGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> gridColumns = <Widget>[];
     double width = GanttChartController.instance.chartViewByViewRange;
     DateTime now = DateTime.now();
     now = now.subtract(
       Duration(
-        hours: now.hour,
+        hours: now.hour % Configs.graphColumnsPeriod.inHours,
         minutes: now.minute,
         seconds: now.second,
         milliseconds: now.millisecond,
@@ -25,40 +22,30 @@ class ChartGrid extends StatelessWidget {
       )
     );
 
-    for (int i = 0; i < GanttChartController.instance.viewRange!.length; i++) {
-      gridColumns.add(Container(
-        width: width,
-        decoration: BoxDecoration(
-          color: DateFormat('yyyy-MM-dd HH:mm:ss').format(GanttChartController.instance.viewRange![i]) == DateFormat('yyyy-MM-dd HH:mm:ss').format(now) ?
-            Colors.blue.withAlpha(100) :
-            GanttChartController.instance.viewRange![i].weekday > 5 ?
-              Colors.grey[800] :
-              null,
-          border: Border(
-            right: BorderSide(
-              color: Colors.white.withAlpha(100),
-              width: 1.0
+    return ListView.builder(
+      cacheExtent: 10,
+      controller: GanttChartController.instance.columnsScrollController,
+      scrollDirection: Axis.horizontal,
+      itemCount: GanttChartController.instance.viewRange!.length,
+      itemExtent: width,
+      itemBuilder:(context, index) {
+        return Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: DateFormat('yyyy-MM-dd HH:mm:ss').format(GanttChartController.instance.viewRange![index]) == DateFormat('yyyy-MM-dd HH:mm:ss').format(now) ?
+              Colors.blue.withAlpha(100) :
+              GanttChartController.instance.viewRange![index].weekday > 5 ?
+                Colors.grey[800] :
+                null,
+            border: Border(
+              right: BorderSide(
+                color: Colors.white.withAlpha(100),
+                width: 1.0
+              )
             )
-          )
-        ),
-      ));
-    }
-
-    return Listener(
-      onPointerSignal: (pointerSignal){
-        if(pointerSignal is PointerScrollEvent && GanttChartController.instance.isAltPressed){
-            if ((GanttChartController.instance.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
-              (GanttChartController.instance.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
-                GanttChart.scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
-            }
-        }
+          ),
+        );
       },
-      onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, context),
-      onPointerUp: (event) async => await GanttChartController.instance.onPointerUp(event, context),
-      onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
-      child: Row(
-        children: gridColumns,
-      ),
     );
   }
 }

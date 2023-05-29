@@ -112,6 +112,7 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                   _userToken,
                   'Personal token',
                   'Personal token',
+                  obscureText: true,
                   onChanged: (value) async {
                     await GanttChartController.instance.prefs!.setString('token', value);
                     GanttChartController.instance.gitHub!.userToken = value;
@@ -183,11 +184,6 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                         child: Consumer<RepoController?>(
                           builder: (repoContext, repoValue, child) {
                             Configs.initializeConfigs();
-                            
-                            GanttChartController.instance.viewRange = GanttChartController.instance.calculateNumberOfDaysBetween(
-                              GanttChartController.instance.fromDate!,
-                              GanttChartController.instance.toDate!
-                            );
 
                             return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,

@@ -20,7 +20,7 @@ class About extends StatelessWidget {
           body: SingleChildScrollView(
             child: Container(
               padding: const EdgeInsets.all(20),
-              child: Column(
+              child: GanttChartController.instance.rateLimit != null ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -98,6 +98,10 @@ class About extends StatelessWidget {
                   ),
                   const Divider(),
                 ],
+              ) : const Center(
+                child: Text(
+                  'Nenhum repositório conectado.'
+                ),
               ),
             ),
           ),

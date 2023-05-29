@@ -13,63 +13,71 @@ class ChartHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double columnsPerDay = (24 * 60 / Configs.graphColumnsPeriod.inMinutes);
-    List<Widget> headerDays = <Widget>[];
-    List<Widget> headerHours = <Widget>[];
+    double columnsPerDay = (24 / Configs.graphColumnsPeriod.inHours);
 
-    for (int i = 0; i < GanttChartController.instance.viewRange!.length; i++) {
-      if (i % columnsPerDay == 0) {
-        headerDays.add(Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: Colors.white.withAlpha(400),
-                width: 0.5,
-              ),
-            )
-          ),
-          width: GanttChartController.instance.chartViewByViewRange * (24 * 60 / Configs.graphColumnsPeriod.inMinutes),
-          child: Text(
-            DateFormat('dd/MM/yyyy').format(GanttChartController.instance.viewRange![i]),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10.0,
+    return SizedBox(
+      height: 30.0,
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              cacheExtent: 10,
+              controller: GanttChartController.instance.daysScrollController,
+              itemCount: GanttChartController.instance.viewRange!.length ~/ (24 / Configs.graphColumnsPeriod.inHours),
+              itemExtent: GanttChartController.instance.chartViewByViewRange * (24 / Configs.graphColumnsPeriod.inHours),
+              scrollDirection: Axis.horizontal,
+              itemBuilder:(context, index) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(255),
+                    border: Border(
+                      left: BorderSide(
+                        color: Colors.white.withAlpha(400),
+                        width: 0.5,
+                      ),
+                    )
+                  ),
+                  width: GanttChartController.instance.chartViewByViewRange * (24 / Configs.graphColumnsPeriod.inHours),
+                  child: Text(
+                    DateFormat('dd/MM/yyyy').format(GanttChartController.instance.viewRange![index * 12]),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 10.0,
+                    ),
+                  ),
+                );
+              }
             ),
           ),
-        ));
-      }
-
-      headerHours.add(Container(
-        decoration: BoxDecoration(
-          border: Border(
-            left: i % columnsPerDay == 0 ? BorderSide(
-              color: Colors.white.withAlpha(400),
-              width: 0.5,
-            ) : BorderSide.none,
-          )
-        ),
-        width: GanttChartController.instance.chartViewByViewRange,
-        child: Text(
-          '${DateFormat('HH:mm').format(GanttChartController.instance.viewRange![i])}h',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 10.0,
-          ),
-        ),
-      ));
-    }
-
-    return Container(
-      height: 30.0,
-      color: color.withAlpha(255),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: headerDays,
-          ),
-          Row(
-            children: headerHours,
+          Expanded(
+            child: ListView.builder(
+              cacheExtent: 10,
+              controller: GanttChartController.instance.hoursScrollController,
+              itemCount: GanttChartController.instance.viewRange!.length,
+              itemExtent: GanttChartController.instance.chartViewByViewRange,
+              scrollDirection: Axis.horizontal,
+              itemBuilder:(context, index) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(255),
+                    border: Border(
+                      left: index % columnsPerDay == 0 ? BorderSide(
+                        color: Colors.white.withAlpha(400),
+                        width: 0.5,
+                      ) : BorderSide.none,
+                    )
+                  ),
+                  width: GanttChartController.instance.chartViewByViewRange,
+                  child: Text(
+                    '${DateFormat('HH:mm').format(GanttChartController.instance.viewRange![index])}h',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 10.0,
+                    ),
+                  ),
+                );
+              }
+            ),
           ),
         ],
       ),

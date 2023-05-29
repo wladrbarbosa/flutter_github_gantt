@@ -50,7 +50,7 @@ class "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartCo
   +void rememberScrollPositions()
   +Future<void> onPointerDown()
   -void _onGridPointerDown()
-  +List<DateTime> calculateNumberOfDaysBetween()
+  +List<DateTime> calculateNumberOfColumnsBetween()
   +void launchURL()
   +Future<void> onIssueRightButton()
   +void addDaysOnStart()

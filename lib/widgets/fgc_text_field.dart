@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class FGCTextField extends StatelessWidget {
   final TextEditingController _controller;
   final String _label;
+  final bool obscureText;
   final String _hintText;
   final void Function(String)? onChanged;
 
@@ -11,6 +12,7 @@ class FGCTextField extends StatelessWidget {
     this._label,
     this._hintText,
     {
+      this.obscureText = false,
       super.key,
       this.onChanged,
     }
@@ -22,11 +24,12 @@ class FGCTextField extends StatelessWidget {
       width: 250,
       child: TextFormField(
         controller: _controller,
-        obscureText: true,
+        obscureText: obscureText,
         decoration: InputDecoration(
           hintText: _hintText,
           label: Text(_label),
         ),
+        onChanged: onChanged,
       ),
     );
   }

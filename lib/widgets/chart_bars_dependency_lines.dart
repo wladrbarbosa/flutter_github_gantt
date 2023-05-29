@@ -88,12 +88,10 @@ class DependencyLine extends CustomPainter {
 class ChartBarsDependencyLines extends StatelessWidget {
   final List<Issue> data;
   final Color color;
-  final GanttChartController gantChartController;
   final BoxConstraints constraints;
 
   const ChartBarsDependencyLines({
     Key? key,
-    required this.gantChartController,
     required this.constraints,
     this.color = Colors.blue,
     this.data = const [],
@@ -104,7 +102,7 @@ class ChartBarsDependencyLines extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 30.0),
       child: SingleChildScrollView(
-        controller: gantChartController.chartDependencyLinesController,
+        controller: GanttChartController.instance.chartDependencyLinesController,
         child: Column(
           children: List.generate(data.length, (index) {
             return ChangeNotifierProvider<Issue>.value(
@@ -130,7 +128,7 @@ class ChartBarsDependencyLines extends StatelessWidget {
                             color: lineColors[index]
                           ),
                           child: SizedBox(
-                            width: GanttChartController.instance.calculateNumberOfDaysBetween(
+                            width: GanttChartController.instance.calculateNumberOfColumnsBetween(
                               GanttChartController.instance.fromDate!,
                               GanttChartController.instance.toDate!
                             ).length * GanttChartController.instance.chartViewByViewRange,

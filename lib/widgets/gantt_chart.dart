@@ -6,14 +6,13 @@ import 'package:flutter_github_gantt/widgets/chart_bars.dart';
 import 'package:flutter_github_gantt/widgets/chart_bars_dependency_lines.dart';
 import 'package:flutter_github_gantt/widgets/chart_grid.dart';
 import 'package:flutter_github_gantt/widgets/chart_header.dart';
+import 'package:intl/intl.dart';
 
 class GanttChart extends StatelessWidget {
-  final GanttChartController _ganttChartController;
   final Color _backgroundColor;
   final List<Issue> _issuesList;
   
   const GanttChart(
-    this._ganttChartController,
     this._backgroundColor,
     this._issuesList,
     {
@@ -22,7 +21,7 @@ class GanttChart extends StatelessWidget {
   );
 
   static void scale(double deltaX, double deltaY) {
-    double percent = GanttChartController.instance.horizontalController.position.pixels * 100 / (GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length);
+    double percent = GanttChartController.instance.horizontalController.offset * 100 / (GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length);
     GanttChartController.instance.viewRangeToFitScreen = GanttChartController.instance.viewRangeToFitScreen! + deltaY;
 
     if (deltaY.sign < 0) {
@@ -39,74 +38,85 @@ class GanttChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _ganttChartController.removeIssueSelection();
-        },
-        onScaleStart: (details) {
-          GanttChartController.instance.viewRangeOnScale = GanttChartController.instance.viewRangeToFitScreen;
-        },
-        onScaleUpdate: (details) {
-          num scaleFactor = (details.scale - 1).sign;
-
-          if ((_ganttChartController.viewRangeToFitScreen! > 1 || scaleFactor > 0) &&
-            (_ganttChartController.viewRangeToFitScreen! <= 55 || scaleFactor < 0)) {
-              scale(scaleFactor / 10, scaleFactor / 10);
-          }
-        },
-        child: LayoutBuilder(
-          builder: (chartContext, constraints) {
-            return SingleChildScrollView(
-              controller: _ganttChartController.horizontalController,
-              scrollDirection: Axis.horizontal,
-              physics: _ganttChartController.isPanStartActive || _ganttChartController.isPanEndActive || _ganttChartController.isPanMiddleActive ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    width: _ganttChartController.calculateNumberOfDaysBetween(_ganttChartController.fromDate!, _ganttChartController.toDate!).length * _ganttChartController.chartViewByViewRange,
-                    child: Listener(
-                      onPointerSignal: (pointerSignal){
-                        if(pointerSignal is PointerScrollEvent && _ganttChartController.isAltPressed){
-                            if ((_ganttChartController.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
-                              (_ganttChartController.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
-                                scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              GanttChartController.instance.removeIssueSelection();
+            },
+            onScaleStart: (details) {
+              GanttChartController.instance.viewRangeOnScale = GanttChartController.instance.viewRangeToFitScreen;
+            },
+            onScaleUpdate: (details) {
+              num scaleFactor = (details.scale - 1).sign;
+        
+              if ((GanttChartController.instance.viewRangeToFitScreen! > 1 || scaleFactor > 0) &&
+                (GanttChartController.instance.viewRangeToFitScreen! <= 55 || scaleFactor < 0)) {
+                  scale(scaleFactor / 10, scaleFactor / 10);
+              }
+            },
+            child: LayoutBuilder(
+              builder: (chartContext, constraints) {
+                return Stack(
+                  children: [
+                    // Não tornar ChartGrid constante, senão zoomin e out não funcioinarão corretamente
+                    // ignore: prefer_const_constructors
+                    ChartGrid(),
+                    SingleChildScrollView(
+                      controller: GanttChartController.instance.singleChildScrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanMiddleActive ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
+                      child: SizedBox(
+                        width: GanttChartController.instance.calculateNumberOfColumnsBetween(GanttChartController.instance.fromDate!, GanttChartController.instance.toDate!).length * GanttChartController.instance.chartViewByViewRange,
+                        child: Listener(
+                          onPointerSignal: (pointerSignal){
+                            if(pointerSignal is PointerScrollEvent && GanttChartController.instance.isAltPressed){
+                                if ((GanttChartController.instance.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
+                                  (GanttChartController.instance.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
+                                    scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
+                                }
                             }
-                        }
-                      },
-                      onPointerDown: (event) async => await _ganttChartController.onPointerDown(event, chartContext),
-                      onPointerUp: (event) async => await _ganttChartController.onPointerUp(event, chartContext),
-                      onPointerMove: (event) async => _ganttChartController.onPointerDownTime = null,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        fit: StackFit.passthrough,
-                        children: <Widget>[
-                          // Não tornar ChartGrid constante, senão zoomin e out não funcioinarão corretamente
-                          // ignore: prefer_const_constructors
-                          ChartGrid(),
-                          ChartBarsDependencyLines(
-                            gantChartController: _ganttChartController,
-                            constraints: constraints,
-                            color: _backgroundColor,
-                            data: _issuesList,
+                          },
+                          onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, chartContext),
+                          onPointerUp: (event) async => await GanttChartController.instance.onPointerUp(event, chartContext),
+                          onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            fit: StackFit.passthrough,
+                            children: <Widget>[
+                              ChartBarsDependencyLines(
+                                constraints: constraints,
+                                color: _backgroundColor,
+                                data: _issuesList,
+                              ),
+                              ChartBars(
+                                constraints: constraints,
+                                color: _backgroundColor,
+                                data: _issuesList,
+                              ),
+                            ],
                           ),
-                          ChartBars(
-                            gantChartController: _ganttChartController,
-                            constraints: constraints,
-                            color: _backgroundColor,
-                            data: _issuesList,
-                          ),
-                        ],
-                      ),
+                        ),
+                      )
                     ),
-                  ),
-                  ChartHeader(color: _backgroundColor),
-                ],
-              )
-            );
-          }
+                    ChartHeader(
+                      color: _backgroundColor,
+                    ),
+                  ],
+                );
+              }
+            ),
+          ),
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'Valor total do repositório: ${NumberFormat.currency(locale: 'pt_BR', decimalDigits: 2, name: 'R\$').format(_issuesList.fold(0.0, (previousValue, el) => previousValue + el.value))}'
+          ),
+        ),
+      ],
     );
   }
 }

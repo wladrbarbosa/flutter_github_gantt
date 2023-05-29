@@ -1,4 +1,4 @@
-import 'package:flutter_github_gantt/Model/Assignees.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
 
 class Milestone {
   String? url;

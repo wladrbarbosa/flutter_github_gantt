@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/issue.dart';
@@ -45,7 +46,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
   @override
   void initState() {
     _titleController = TextEditingController(text: widget.issue != null ? widget.issue!.title : '');
-    _bodyController = TextEditingController(text: widget.issue != null ? widget.issue!.body!.replaceAll(RegExp(r'```.*```', dotAll: true), '') : '');
+    _bodyController = TextEditingController(text: widget.issue != null ? widget.issue!.body!.replaceAll(RegExp(r'```.*```', dotAll: true), '').replaceAll('\n', '') : '');
 
     if (widget.issue != null) {
       _haveTiming = RegExp(r'```yaml(\n.*)*```').hasMatch(widget.issue!.body!);
@@ -54,11 +55,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
       _selMilestone = widget.issue!.milestone;
       _isClosed = widget.issue!.state == 'closed';
       _selDepIssues = widget.issue!.dependencies;
-      
-      _periodoDaTarefa = DateTimeRange(
-        start: DateFormat('yyyy/MM/dd HH:mm:ss').parse(RegExp(r'(?<=start_date: ).*').stringMatch(widget.issue!.body!)!),
-        end: DateFormat('yyyy/MM/dd HH:mm:ss').parse(RegExp(r'(?<=due_date: ).*').stringMatch(widget.issue!.body!)!),
-      );
+      _periodoDaTarefa = GanttChartController.parseIssueBody(widget.issue!);
       _horaInicioDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.start);
       _horaFimDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.end);
     }
@@ -66,6 +63,22 @@ class NewIssueDialogState extends State<NewIssueDialog> {
       _selAssignees.add(widget.assignees!.singleWhere((el) => el.login == GanttChartController.instance.user!.login));
       _horaInicioDaTarefa = TimeOfDay.now();
       _horaFimDaTarefa = TimeOfDay.now();
+
+      _horaInicioDaTarefa = _horaInicioDaTarefa.replacing(
+        hour: _horaInicioDaTarefa.hour - (_horaInicioDaTarefa.hour % Configs.graphColumnsPeriod.inHours),
+        minute: 0,
+      );
+
+      int horaFimDaTarefaTemp = _horaInicioDaTarefa.hour + Configs.graphColumnsPeriod.inHours;
+
+      if (horaFimDaTarefaTemp == 24) {
+        horaFimDaTarefaTemp = 0;
+      }
+
+      _horaFimDaTarefa = _horaFimDaTarefa.replacing(
+        hour: horaFimDaTarefaTemp,
+        minute: 0,
+      );
     }
 
     super.initState();
@@ -450,7 +463,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                                 itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                                items: GanttChartController.instance.issueList!.map<MultiSelectItem<int>>((e) {
+                                items: GanttChartController.issueList!.map<MultiSelectItem<int>>((e) {
                                   return MultiSelectItem<int>(
                                     e.number!,
                                     '${e.number!} - ${e.title!}',
@@ -509,25 +522,17 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                         }
 
                         if (_formKey.currentState!.validate()) {
-                          DateTime inicio = DateTime.now();
-                          inicio = inicio.subtract(
-                            Duration(
-                              hours: inicio.hour % 3,
-                              minutes: inicio.minute,
-                              seconds: inicio.second,
-                              milliseconds: inicio.millisecond,
-                              microseconds: inicio.microsecond,
-                            )
+                          DateTime inicio = DateTime(
+                            _periodoDaTarefa!.start.year,
+                            _periodoDaTarefa!.start.month,
+                            _periodoDaTarefa!.start.day,
+                            _horaInicioDaTarefa.hour
                           );
-                          DateTime fim = inicio;
-                          fim = fim.subtract(
-                            Duration(
-                              hours: -(3 - inicio.hour % 3),
-                              minutes: fim.minute,
-                              seconds: fim.second,
-                              milliseconds: fim.millisecond,
-                              microseconds: fim.microsecond,
-                            )
+                          DateTime fim = DateTime(
+                            _periodoDaTarefa!.end.year,
+                            _periodoDaTarefa!.end.month,
+                            _periodoDaTarefa!.end.day,
+                            _horaFimDaTarefa.hour
                           );
 
                           _periodoDaTarefa = DateTimeRange(start: inicio, end: fim);
@@ -535,7 +540,6 @@ class NewIssueDialogState extends State<NewIssueDialog> {
 
                           if (widget.issue != null) {
                             GanttChartController.instance.gitHub!.updateIssue(
-                              widget.issue!,
                               _titleController.text,
                               metaInfo + _bodyController.text,
                               _selMilestone == null ? null : _selMilestone!.number,

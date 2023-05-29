@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/label.dart';
 import 'package:flutter_github_gantt/model/milestone.dart';
@@ -111,8 +111,8 @@ class GitHubAPI {
 
   Future<void> awaitIssuesPages(int totalPages) async {
     if (pagesLoaded < totalPages) {
-      Log.show('d', ' $pagesLoaded páginas carregadas de $totalPages. Aguardando 100 ms para continuar...');
-      return await Future.delayed(const Duration(milliseconds: 100), () async => await awaitIssuesPages(totalPages));
+      Log.show('d', ' $pagesLoaded páginas carregadas de $totalPages. Aguardando 500 ms para continuar...');
+      return await Future.delayed(const Duration(milliseconds: 500), () async => await awaitIssuesPages(totalPages));
     }
   }
 
@@ -125,7 +125,7 @@ class GitHubAPI {
 
   Future<List<Issue>> getIssuesList() async {
     getRateLimit();
-    Map<String, dynamic>? resultTotalIssues = await gitHubGraphQLQuery("query {repository(owner:\"${GanttChartController.instance.user!.login}\",name:\"${GanttChartController.instance.repo!.name}\"){issues {totalCount}}}");
+    Map<String, dynamic>? resultTotalIssues = await gitHubGraphQLQuery("query {repository(owner:\"${GanttChartController.instance.repo!.owner!.login}\",name:\"${GanttChartController.instance.repo!.name}\"){issues {totalCount}}}");
     int numberOfPages = 0;
     List<Issue> responseLits = [];
     DateTime? chartStart;
@@ -137,13 +137,13 @@ class GitHubAPI {
     }
 
     for (int j = 1; j <= numberOfPages; j++) {
-      gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
+      gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/issues?page=$j&per_page=100&state=all&time=${DateTime.now()}').then((issuesList) {
         for (int i = 0; i < issuesList.length; i++) {
           DateTime? startTime;
           DateTime? endTime;
 
-          String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!;
-          String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'])!;
+          String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'] ?? '') ?? DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now());
+          String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issuesList[i]['body'] ?? '') ?? DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now());
 
           try {
             startTime = DateFormat('yyyy/M/d${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
@@ -158,10 +158,6 @@ class GitHubAPI {
             }
           }
 
-          if (endTime.hour == 0 && endTime.minute == 0 && endTime.second == 0) {
-            endTime = endTime.add(const Duration(days: 1));
-          }
-
           if (chartStart == null) {
             chartStart = startTime;
           } else if (startTime.isBefore(chartStart!)) {
@@ -174,15 +170,16 @@ class GitHubAPI {
             chartEnd = endTime;
           }
 
-          Issue temp = Issue.fromJson(issuesList[i]);
-          temp.startTime = startTime;
-          temp.endTime = endTime;
-          String? parsedParent = issuesList[i]['body'] == null ? null : RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(issuesList[i]['body']).fold('', (previousValue, el) => '$previousValue${el.group(0)}');
-          
-          if (parsedParent != null && parsedParent != '') {
-            temp.dependencies = parsedParent.replaceFirst(RegExp(r',$', multiLine: true), '').split(',').map<int>((e) => int.parse(e)).toList();
-          }
-          
+          DateTime fromDate = chartStart!.subtract(const Duration(days: 5));
+          GanttChartController.instance.fromDate = DateTime(fromDate.year, fromDate.month, fromDate.day);
+          DateTime toDate = chartEnd!.add(const Duration(days: 5));
+          GanttChartController.instance.toDate = DateTime(toDate.year, toDate.month, toDate.day);
+          GanttChartController.instance.viewRange = GanttChartController.instance.calculateNumberOfColumnsBetween(
+            GanttChartController.instance.fromDate!,
+            GanttChartController.instance.toDate!
+          );
+
+          Issue temp = Issue.fromJson(issuesList[i], pStartTime: startTime, pEndTime: endTime);
           responseLits.add(temp);
         }
         pagesLoaded++;
@@ -192,10 +189,6 @@ class GitHubAPI {
     await awaitIssuesPages(numberOfPages);
 
     refreshIssuesList = false;
-    DateTime fromDate = chartStart!.subtract(const Duration(days: 5));
-    GanttChartController.instance.fromDate = DateTime(fromDate.year, fromDate.month, fromDate.day);
-    DateTime toDate = chartEnd!.add(const Duration(days: 5));
-    GanttChartController.instance.toDate = DateTime(toDate.year, toDate.month, toDate.day);
     return responseLits;
   }
   
@@ -210,7 +203,7 @@ class GitHubAPI {
     List<Assignee> responseList = [];
 
     gitHubRequest<Map<String, dynamic>>(
-      '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues?time=${DateTime.now()}',
+      '/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/issues?time=${DateTime.now()}',
       method: 'POST',
       body: {
         'title': title,
@@ -220,18 +213,16 @@ class GitHubAPI {
         'labels': labels,
         'state': isClosed ? 'closed' : 'open'
       }
-    ).then((issue) {
-      Log.show('d', '$issue');
-    });
+    );
 
     reloadIssues();
     return responseList;
   }
 
-  Future<void> updateIssue(Issue issue, String title, String body, int? milestone, List<Assignee> assignees, List<Label> labels, List<int> dependencies, {bool isClosed = false}) async {
+  Future<void> updateIssue(String title, String body, int? milestone, List<Assignee> assignees, List<Label> labels, List<int> dependencies, {bool isClosed = false}) async {
     GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
     gitHubRequest<Map<String, dynamic>>(
-      '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${issue.number}?time=${DateTime.now()}',
+      '/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/issues/${GanttChartController.instance.selectedIssues[0]!.number}?time=${DateTime.now()}',
       method: 'PATCH',
       body: {
         'title': title,
@@ -242,12 +233,21 @@ class GitHubAPI {
         'state': isClosed ? 'closed' : 'open'
       }
     ).then((value) {
-      GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
       GanttChartController.instance.selectedIssues[0]!.dependencies = dependencies;
+      GanttChartController.instance.selectedIssues[0]!.body = body;
+      DateTimeRange periodoDaTarefa = GanttChartController.parseIssueBody(GanttChartController.instance.selectedIssues[0]!);
+      GanttChartController.instance.selectedIssues[0]!.startTime = periodoDaTarefa.start;
+      GanttChartController.instance.selectedIssues[0]!.endTime = periodoDaTarefa.end;
       GanttChartController.instance.selectedIssues[0]!.assignees = assignees;
       GanttChartController.instance.selectedIssues[0]!.labels = labels;
-      GanttChartController.instance.selectedIssues[0]!.state = Issue.fromJson(value).state;
-      GanttChartController.instance.selectedIssues[0]!.update();
+      Issue temp = Issue.fromJson(
+        value,
+        pStartTime: GanttChartController.instance.selectedIssues[0]!.startTime,
+        pEndTime: GanttChartController.instance.selectedIssues[0]!.endTime,
+      );
+      GanttChartController.instance.selectedIssues[0]!.state = temp.state;
+      GanttChartController.instance.selectedIssues[0]!.value = temp.value;
+      GanttChartController.instance.selectedIssues[0]!.toggleProcessing();
     });
   }
 
@@ -256,7 +256,7 @@ class GitHubAPI {
       GanttChartController.instance.selectedIssues[i]!.toggleProcessing();
 
       gitHubRequest<Map<String, dynamic>>(
-        '/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${GanttChartController.instance.selectedIssues[i]!.number}?time=${DateTime.now()}',
+        '/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/issues/${GanttChartController.instance.selectedIssues[i]!.number}?time=${DateTime.now()}',
         method: 'PATCH',
         body: {
           'state': GanttChartController.instance.selectedIssues[i]!.state == 'open' ? 'closed' : 'open',
@@ -272,7 +272,7 @@ class GitHubAPI {
   Future<List<Milestone>> getRepoMilestonesList() async {
     List<Milestone> responseList = [];
 
-    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/milestones?time=${DateTime.now()}').then((milestoneListFuture) {
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/milestones?state=all&time=${DateTime.now()}').then((milestoneListFuture) {
       for (int i = 0; i < milestoneListFuture.length; i++) {
         responseList.add(Milestone.fromJson(milestoneListFuture[i]));
       }
@@ -284,7 +284,7 @@ class GitHubAPI {
   Future<List<Assignee>> getRepoassigneesListFuture() async {
     List<Assignee> responseList = [];
 
-    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/assignees?time=${DateTime.now()}').then((assigneesListFuture) {
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/assignees?time=${DateTime.now()}').then((assigneesListFuture) {
       for (int i = 0; i < assigneesListFuture.length; i++) {
         responseList.add(Assignee.fromJson(assigneesListFuture[i]));
       }
@@ -296,7 +296,7 @@ class GitHubAPI {
   Future<List<Label>> getRepolabelsListFuture() async {
     List<Label> responseList = [];
 
-    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/labels?time=${DateTime.now()}').then((labelsListFuture) {
+    gitHubRequest<List<dynamic>>('/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/labels?time=${DateTime.now()}').then((labelsListFuture) {
       for (int i = 0; i < labelsListFuture.length; i++) {
         responseList.add(Label.fromJson(labelsListFuture[i]));
       }
@@ -310,10 +310,7 @@ class GitHubAPI {
     List<RepoController> responseLits = [];
 
     for (int i = 0; i < reposList.length; i++) {
-      responseLits.add(RepoController(
-        id: reposList[i]['id'],
-        name: reposList[i]['name'],
-      ));
+      responseLits.add(RepoController.fromJson(reposList[i]));
     }
 
     GanttChartController.instance.reposList = responseLits;
@@ -354,13 +351,13 @@ class GitHubAPI {
       currentUssue.body = currentUssue.body!.replaceFirst(RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+'), DateFormat('yyyy/MM/dd HH:mm:ss').format(currentUssue.endTime!));
     }
 
-    dynamic issue = await gitHubRequest<dynamic>('/repos/${GanttChartController.instance.user!.login}/${GanttChartController.instance.repo!.name}/issues/${currentUssue.number}', method: 'PATCH', body: {"body": currentUssue.body});
+    dynamic issue = await gitHubRequest<dynamic>('/repos/${GanttChartController.instance.repo!.owner!.login}/${GanttChartController.instance.repo!.name}/issues/${currentUssue.number}', method: 'PATCH', body: {"body": currentUssue.body});
     Issue response;
     DateTime? startTime;
     DateTime? endTime;
 
-    String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!;
-    String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issue['body'])!;
+    String startDate = RegExp(r'(?<=start_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=start_date: )\d+\/\d+\/\d+').stringMatch(issue['body'] ?? '') ?? DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now());
+    String dueDate = RegExp(r'(?<=due_date: )\d+\/\d+\/\d+ \d+:\d+:\d+|(?<=due_date: )\d+\/\d+\/\d+').stringMatch(issue['body'] ?? '') ?? DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now());
 
     try {
       startTime = DateFormat('yyyy/M/d${startDate.contains(':') ? ' HH:mm:ss' : ''}').parse(startDate);
@@ -375,9 +372,7 @@ class GitHubAPI {
       }
     }
 
-    response = Issue.fromJson(issue);
-    response.startTime = startTime;
-    response.endTime = endTime;
+    response = Issue.fromJson(issue, pStartTime: startTime, pEndTime: endTime);
 
     return response;
   }

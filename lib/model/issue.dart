@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_github_gantt/configs.dart';
+import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/label.dart';
 import 'package:flutter_github_gantt/model/milestone.dart';
@@ -42,6 +44,7 @@ class Issue extends ChangeNotifier {
     this.startTime,
     this.endTime,
     this.dependencies = const [],
+    this.value = 0.0,
   });
 
   String? url;
@@ -81,6 +84,7 @@ class Issue extends ChangeNotifier {
   DateTime? startTime = DateTime.now();
   DateTime? endTime = DateTime.now();
   List<int> dependencies = [];
+  double value = 0.0;
 
   double get width => _width;
   set width(double value) {
@@ -100,12 +104,16 @@ class Issue extends ChangeNotifier {
   void toggleProcessing({bool notify = true}) {
     processing = !processing;
 
+    if (!processing) {
+      GanttChartController.instance.repo!.update();
+    }
+
     if (notify) {
       update();
     }
   }
 
-  Issue.fromJson(Map<String, dynamic> json) {
+  Issue.fromJson(Map<String, dynamic> json, {DateTime? pStartTime, DateTime? pEndTime}) {
 		url = json['url'];
 		repositoryUrl = json['repository_url'];
 		labelsUrl = json['labels_url'];
@@ -115,6 +123,7 @@ class Issue extends ChangeNotifier {
 		id = json['id'];
 		nodeId = json['node_id'];
 		number = json['number'];
+    value = 0.0;
 		title = json['title'];
 		user = json['user'] != null ? Assignee.fromJson(json['user']) : null;
 		if (json['labels'] != null) {
@@ -139,6 +148,49 @@ class Issue extends ChangeNotifier {
 		reactions = json['reactions'] != null ? Reaction.fromJson(json['reactions']) : null;
 		timelineUrl = json['timeline_url'];
 		performedViaGithubApp = json['performed_via_github_app'] != null ? true : json['performed_via_github_app'];
+    // Corrige datas baseadas na configuração do gráfico e insere valor da tarefa
+    if (pStartTime != null) {
+      startTime = pStartTime;
+    }
+    
+    if (pEndTime != null) {
+      endTime = pEndTime;
+    }
+    
+    String? parsedParent = body == null ? null : RegExp(r'(?<=parent: .*(?!<=,0)(?<!,0).*)([1-9]{1},*|0*(?<=\d)(?=\d)0,*)').allMatches(body ?? '').fold('', (previousValue, el) => '$previousValue${el.group(0)}');
+    
+    if (parsedParent != null && parsedParent != '') {
+      dependencies = parsedParent.replaceFirst(RegExp(r',$', multiLine: true), '').split(',').map<int>((e) => int.parse(e)).toList();
+    }
+          
+    startTime = DateTime(
+      startTime!.year,
+      startTime!.month,
+      startTime!.day,
+      startTime!.hour % Configs.graphColumnsPeriod.inHours != 0
+        ? startTime!.hour + (Configs.graphColumnsPeriod.inHours - (startTime!.hour % Configs.graphColumnsPeriod.inHours))
+        : startTime!.hour
+    );
+
+    endTime = DateTime(
+      endTime!.year,
+      endTime!.month,
+      endTime!.day,
+      endTime!.hour - (endTime!.hour % Configs.graphColumnsPeriod.inHours)
+    );
+
+    remainingWidth = GanttChartController.instance.calculateRemainingWidth(startTime!, endTime!);
+
+    for (int i = 0; i < remainingWidth!; i++) {
+      bool isWeekDayOff = Configs.dayOfWeekOfNoWork.contains(startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).weekday);
+      DateTime currentColumnDate = startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours));
+      bool isSpecificDayOff = Configs.specificDatesOfNoWork.contains(DateTime(currentColumnDate.year, currentColumnDate.month, currentColumnDate.day));
+      bool isHourOff = Configs.hourOfNoWork.map<int>((e) => e['inicio']!).toList().contains(startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).hour);
+
+      if (!isWeekDayOff && !isHourOff && !isSpecificDayOff) {
+        value += Configs.perHourValue * Configs.graphColumnsPeriod.inHours;
+      }
+    }
 	}
 
 	Map<String, dynamic> toJson() {

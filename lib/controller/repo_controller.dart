@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_github_gantt/Model/Assignees.dart';
-import 'package:flutter_github_gantt/Model/Permission.dart';
+import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/license.dart';
+import 'package:flutter_github_gantt/model/permission.dart';
 
 class RepoController extends ChangeNotifier {
   RepoController({
@@ -154,7 +155,7 @@ class RepoController extends ChangeNotifier {
   bool? archived;
   bool? disabled;
   int? openIssuesCount;
-  String? license;
+  License? license;
   bool? allowForking;
   bool? isTemplate;
   List<String>? topics;
@@ -234,7 +235,9 @@ class RepoController extends ChangeNotifier {
     archived = json['archived'];
     disabled = json['disabled'];
     openIssuesCount = json['open_issues_count'];
-    license = json['license'];
+    license = json['license'] != null
+        ? License.fromJson(json['license'])
+        : null;
     allowForking = json['allow_forking'];
     isTemplate = json['is_template'];
     if (json['topics'] != null) {

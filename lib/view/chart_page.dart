@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/widgets/chart_bars_dependency_lines.dart';
 import 'package:flutter_github_gantt/widgets/gantt_chart.dart';
 import 'package:flutter_github_gantt/widgets/issues_list.dart';
+import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
 import '../model/issue.dart';
 import '../controller/gantt_chart_controller.dart';
@@ -64,23 +65,33 @@ class ChartPage extends StatelessWidget {
 
           filteredUserData = userData.where((el) => el.title!.contains(GanttChartController.instance.filterController.text)).toList();
 
+          MultiSplitView multiSplitView = MultiSplitView(
+            children: [
+              IssuesList(
+                color,
+                userData,
+                filteredUserData,
+              ),
+              GanttChart(
+                color,
+                filteredUserData,
+              ),
+            ],
+          );
+
+          MultiSplitViewTheme theme = MultiSplitViewTheme(
+            data: MultiSplitViewThemeData(
+              dividerPainter: DividerPainters.dashed(
+                color: Colors.white,
+                highlightedColor: Colors.blueAccent,
+              ),
+            ),
+            child: multiSplitView,
+          );
+          
           return SizedBox(
             width: MediaQuery.of(ganttChartContext).size.width,
-            child: Row(
-              children: [
-                IssuesList(
-                  ganttChartValue,
-                  color,
-                  userData,
-                  filteredUserData,
-                ),
-                GanttChart(
-                  ganttChartValue,
-                  color,
-                  filteredUserData,
-                ),
-              ],
-            ),
+            child: theme,
           );
         }
       ),
