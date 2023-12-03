@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/configs.dart';
+import 'package:flutter_github_gantt/controller/repos_controller.dart';
 import 'package:intl/intl.dart';
 import '../controller/gantt_chart_controller.dart';
 import 'package:provider/provider.dart';
@@ -43,21 +44,41 @@ class ChartBars extends StatelessWidget {
         controller: GanttChartController.instance.chartBarsController,
         itemCount: data.length,
         itemBuilder: (listContext, index) {
+          TextStyle textStyle = data[index].state == 'open'
+            ? data[index].startTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now()))) < 0
+              ? TextStyle(fontSize: 14, color: Colors.redAccent.shade700, fontWeight: FontWeight.w700)
+              : const TextStyle(fontSize: 14, color: Colors.white)
+            : TextStyle(fontSize: 14, color: Colors.lightGreenAccent.shade700, fontWeight: FontWeight.w700);
+
           return ChangeNotifierProvider<Issue>.value(
             value: data[index],
             child: Consumer<Issue>(
               builder: (issuesContext, _, child) {
-                data[index].remainingWidth = GanttChartController.instance.calculateRemainingWidth(data[index].startTime!, data[index].endTime!);
+                data[index].widthInColumns = GanttChartController.instance.calculateWidthInColumns(data[index].startTime!, data[index].endTime!);
 
                 List<Widget> barsColumns = [];
 
-                for (int i = 0; i < data[index].remainingWidth!; i++) {
-                  bool isWeekDayOff = Configs.dayOfWeekOfNoWork.contains(data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).weekday);
-                  DateTime currentColumnDate = data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours));
-                  bool isSpecificDayOff = Configs.specificDatesOfNoWork.contains(DateTime(currentColumnDate.year, currentColumnDate.month, currentColumnDate.day));
-                  bool isHourOff = Configs.hourOfNoWork.map<int>((e) => e['inicio']!).toList().contains(data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).hour);
+                for (int i = 0; i < data[index].widthInColumns!; i++) {
+                  int weekDayStartTime = data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).weekday - 1;
+                  int hourIndex = data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).hour ~/ Configs.graphColumnsPeriod.inHours;    
+                  bool? specificDayHourOn;
 
-                  if (isWeekDayOff || isHourOff || isSpecificDayOff) {
+                  if (ReposController.getRepoWorkSpecificDaysHoursById(data[index].repo.nodeId!).isNotEmpty) {
+                    DateTime temp = data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours));
+                    DateTime currentDate = DateTime(
+                      temp.year,
+                      temp.month,
+                      temp.day
+                    );
+                    specificDayHourOn = ReposController.getRepoWorkSpecificDaysHoursById(data[index].repo.nodeId!)[currentDate] != null
+                      && ReposController.getRepoWorkSpecificDaysHoursById(data[index].repo.nodeId!)[currentDate]!.isNotEmpty
+                      && ReposController.getRepoWorkSpecificDaysHoursById(data[index].repo.nodeId!)[currentDate]!.contains(hourIndex);
+                  }
+                  
+                  bool weekHourOn = ReposController.getRepoWorkWeekHoursById(data[index].repo.nodeId!)[weekDayStartTime]!.isNotEmpty &&
+                    ReposController.getRepoWorkWeekHoursById(data[index].repo.nodeId!)[weekDayStartTime]!.contains(hourIndex);
+
+                  if (!weekHourOn && specificDayHourOn != true || specificDayHourOn == false) {
                     List<Widget> dashedBarsColumns = [];
                     int dashNumber = 5;
 
@@ -65,21 +86,17 @@ class ChartBars extends StatelessWidget {
                       dashedBarsColumns.add(Container(
                         decoration: BoxDecoration(
                           color: dashIndex.isEven
-                            ? data[index].state == 'open'
-                              ? data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) < 0
-                                ? Colors.purple.withAlpha(100)
-                                : Colors.red.withAlpha(100)
-                              : Colors.green.withAlpha(100)
+                            ? ReposController.getRepoColorById(data[index].repo.nodeId!)
                             : null,
                         ),
                         margin: const EdgeInsets.symmetric(
                           vertical: 12,
                         ),
-                        width: (data[index].remainingWidth! > 1
-                          ? i == 0 || i == data[index].remainingWidth! - 1
-                            ? GanttChartController.instance.chartViewByViewRange - 18
-                            : GanttChartController.instance.chartViewByViewRange
-                          : GanttChartController.instance.chartViewByViewRange - 36) / (dashNumber * 2),
+                        width: (data[index].widthInColumns! > 1
+                          ? i == 0 || i == data[index].widthInColumns! - 1
+                            ? GanttChartController.instance.chartColumnsWidth - 18
+                            : GanttChartController.instance.chartColumnsWidth
+                          : GanttChartController.instance.chartColumnsWidth - 36) / (dashNumber * 2),
                       ));
                     }
 
@@ -91,22 +108,18 @@ class ChartBars extends StatelessWidget {
                   else {
                     barsColumns.add(Container(
                       decoration: BoxDecoration(
-                        color: data[index].state == 'open'
-                          ? data[index].startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) < 0
-                            ? Colors.purple.withAlpha(100)
-                            : Colors.red.withAlpha(100)
-                          : Colors.green.withAlpha(100),
+                        color: ReposController.getRepoColorById(data[index].repo.nodeId!),
                       ),
-                      width: data[index].remainingWidth! > 1
-                        ? i == 0 || i == data[index].remainingWidth! - 1
-                          ? GanttChartController.instance.chartViewByViewRange - 18
-                          : GanttChartController.instance.chartViewByViewRange
-                        : GanttChartController.instance.chartViewByViewRange - 36,
+                      width: data[index].widthInColumns! > 1
+                        ? i == 0 || i == data[index].widthInColumns! - 1
+                          ? GanttChartController.instance.chartColumnsWidth - 18
+                          : GanttChartController.instance.chartColumnsWidth
+                        : GanttChartController.instance.chartColumnsWidth - 36,
                     ));
                   }
                 }
 
-                if (data[index].remainingWidth! > 0) {
+                if (data[index].widthInColumns! > 0) {
                   return GestureDetector(
                     onTap: () {
                       GanttChartController.instance.issueSelect(data[index], data);
@@ -126,34 +139,31 @@ class ChartBars extends StatelessWidget {
                         height: 30.0,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10.0),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.yellow,
-                              width: 1,
-                              style: data[index].selected ? BorderStyle.solid : BorderStyle.none,
-                            ),
-                            top: BorderSide(
-                              color: Colors.yellow,
-                              width: 1,
-                              style: data[index].selected ? BorderStyle.solid : BorderStyle.none,
-                            ),
-                            left: BorderSide(
-                              color: Colors.yellow,
-                              width: 1,
-                              style: data[index].selected ? BorderStyle.solid : BorderStyle.none,
-                            ),
-                            right: BorderSide(
-                              color: Colors.yellow,
-                              width: 1,
-                              style: data[index].selected ? BorderStyle.solid : BorderStyle.none,
-                            ),
-                          ),
+                          border: Border.all(
+                            color: GanttChartController.instance.isPanUpdateActive
+                              ? GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanStartActive
+                                ? Colors.lightBlue
+                                : GanttChartController.instance.isPanMiddleActive
+                                  ? Colors.red
+                                  : Colors.yellow
+                              : Colors.yellow,
+                            width: 1,
+                            style: data[index].selected ? BorderStyle.solid : BorderStyle.none,
+                          )
                         ),
                         margin: EdgeInsets.only(
-                          left: GanttChartController.instance.calculateDistanceToLeftBorder(data[index].startTime!) *
-                              GanttChartController.instance.chartViewByViewRange + (GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanMiddleActive ? data[index].width : 0) + 2,
-                          right: GanttChartController.instance.calculateDistanceToRightBorder(data[index].endTime!) *
-                              GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanMiddleActive ? data[index].width : 0) + 2,
+                          left: GanttChartController.instance.calculateColumnsToLeftBorder(data[index].startTime!) *
+                              GanttChartController.instance.chartColumnsWidth + (GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanMiddleActive
+                                ? GanttChartController.instance.calculateColumnsToLeftBorder(data[index].startTime!) * GanttChartController.instance.chartColumnsWidth + data[index].deltaWidth <= 0
+                                  ? GanttChartController.instance.calculateColumnsToLeftBorder(data[index].startTime!) * -GanttChartController.instance.chartColumnsWidth
+                                  : data[index].deltaWidth
+                                : 0) + 2,
+                          right: GanttChartController.instance.calculateColumnsToRightBorder(data[index].endTime!) *
+                              GanttChartController.instance.chartColumnsWidth - (GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanMiddleActive
+                                ? GanttChartController.instance.calculateColumnsToRightBorder(data[index].endTime!) * GanttChartController.instance.chartColumnsWidth - data[index].deltaWidth <= 0
+                                  ? GanttChartController.instance.calculateColumnsToRightBorder(data[index].endTime!) * GanttChartController.instance.chartColumnsWidth
+                                  : data[index].deltaWidth
+                                : 0) + 2,
                           top: index == 0 ? 4.0 : 2.0,
                           bottom: index == data.length - 1 ? 4.0 : 2.0
                         ),
@@ -185,9 +195,9 @@ class ChartBars extends StatelessWidget {
                                     GanttChartController.instance.onIssueEndPan(PanType.start);
                                   },
                                   child: Container(
-                                    width: (data[index].remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? data[index].width : GanttChartController.instance.isPanEndActive ? -data[index].width : 0)) / 2 - 1 < 15 ? (data[index].remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? data[index].width : GanttChartController.instance.isPanEndActive ? -data[index].width : 0)) / 2 - 1 : 15,
+                                    width: (data[index].widthInColumns! * GanttChartController.instance.chartColumnsWidth - (GanttChartController.instance.isPanStartActive ? data[index].deltaWidth : GanttChartController.instance.isPanEndActive ? -data[index].deltaWidth : 0)) / 2 - 1 < 15 ? (data[index].widthInColumns! * GanttChartController.instance.chartColumnsWidth - (GanttChartController.instance.isPanStartActive ? data[index].deltaWidth : GanttChartController.instance.isPanEndActive ? -data[index].deltaWidth : 0)) / 2 - 1 : 15,
                                     decoration: BoxDecoration(
-                                      color: data[index].state == 'open' ? data[index].startTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) < 0 ? Colors.purple : Colors.red : Colors.green,
+                                      color: ReposController.getRepoColorById(data[index].repo.nodeId!),
                                       borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), topLeft: Radius.circular(10)),
                                     ),
                                   ),
@@ -208,7 +218,7 @@ class ChartBars extends StatelessWidget {
                                     onPanEnd: (details) async {
                                       GanttChartController.instance.onIssueEndPan(PanType.middle);
                                     },
-                                    child: data[index].selected && (GanttChartController.instance.isPanStartActive ||
+                                    child: data[index].selected && GanttChartController.instance.isPanUpdateActive && (GanttChartController.instance.isPanStartActive ||
                                       GanttChartController.instance.isPanEndActive ||
                                       GanttChartController.instance.isPanMiddleActive)
                                         ? Container()
@@ -232,9 +242,9 @@ class ChartBars extends StatelessWidget {
                                     GanttChartController.instance.onIssueEndPan(PanType.end);
                                   },
                                   child: Container(
-                                    width: (data[index].remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? data[index].width : GanttChartController.instance.isPanEndActive ? -data[index].width : 0)) / 2 - 1 < 15 ? (data[index].remainingWidth! * GanttChartController.instance.chartViewByViewRange - (GanttChartController.instance.isPanStartActive ? data[index].width : GanttChartController.instance.isPanEndActive ? -data[index].width : 0)) / 2 - 1 : 15,
+                                    width: (data[index].widthInColumns! * GanttChartController.instance.chartColumnsWidth - (GanttChartController.instance.isPanStartActive ? data[index].deltaWidth : GanttChartController.instance.isPanEndActive ? -data[index].deltaWidth : 0)) / 2 - 1 < 15 ? (data[index].widthInColumns! * GanttChartController.instance.chartColumnsWidth - (GanttChartController.instance.isPanStartActive ? data[index].deltaWidth : GanttChartController.instance.isPanEndActive ? -data[index].deltaWidth : 0)) / 2 - 1 : 15,
                                     decoration: BoxDecoration(
-                                      color: data[index].state == 'open' ? data[index].endTime!.compareTo(DateFormat('yyyy/MM/dd HH:mm:ss').parse(DateFormat('yyyy/MM/dd HH:mm:ss').format(now))) <= 0 ? Colors.purple : Colors.red : Colors.green,
+                                      color: ReposController.getRepoColorById(data[index].repo.nodeId!),
                                       borderRadius: const BorderRadius.only(bottomRight: Radius.circular(10), topRight: Radius.circular(10)),
                                     ),
                                   ),
@@ -246,7 +256,7 @@ class ChartBars extends StatelessWidget {
                                 data[index].title!,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 10.0),
+                                style: textStyle,
                               ),
                             ),
                           ],

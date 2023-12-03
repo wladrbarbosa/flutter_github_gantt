@@ -1,12 +1,24 @@
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
+import 'package:flutter_github_gantt/model/label.dart';
 import 'package:flutter_github_gantt/model/license.dart';
+import 'package:flutter_github_gantt/model/milestone.dart';
 import 'package:flutter_github_gantt/model/permission.dart';
 
-class RepoController extends ChangeNotifier {
-  RepoController({
+const double defaultPerHourValue = 100.0;
+const Map<int, List<int?>> defaultWorkWeekHours = {
+  0: [9, 10, 11],
+  1: [9, 10, 11],
+  2: [9, 10, 11],
+  3: [9, 10, 11],
+  4: [9, 10, 11],
+  5: [6, 7, 8],
+  6: [6, 7, 8, 9],
+};
+const Map<DateTime, List<int?>> defaultWorkSpecificDaysHours = {};
+
+class Repository {
+  Repository({
     this.id,
     this.nodeId,
     this.name,
@@ -84,7 +96,7 @@ class RepoController extends ChangeNotifier {
     this.openIssues,
     this.watchers,
     this.defaultBranch,
-    this.permissions
+    this.permissions,
   });
 
   int? id;
@@ -165,8 +177,14 @@ class RepoController extends ChangeNotifier {
   int? watchers;
   String? defaultBranch;
   Permission? permissions;
+  Future<List<Assignee>>? assigneesListFuture;
+  List<Assignee>? assigneesList;
+  Future<List<Label>>? labelsListFuture;
+  List<Label>? labelsList;
+  Future<List<Milestone>>? milestoneListFuture;
+  List<Milestone>? milestoneList;
 
-  RepoController.fromJson(Map<String, dynamic> json) {
+  Repository.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     nodeId = json['node_id'];
     name = json['name'];
@@ -345,16 +363,31 @@ class RepoController extends ChangeNotifier {
     return data;
   }
 
-  static RepoController fromJSONStr(String value) {
+  static Repository fromJSONStr(String value) {
     Map<String, dynamic> mapedRepo = json.decode(value);
-    return RepoController.fromJson(mapedRepo);
+    return Repository.fromJson(mapedRepo);
+  }
+
+  static List<Repository> listFromJSONStr(String value) {
+    List<Repository> list = [];
+    List<dynamic> mapedRepo = json.decode(value);
+
+    for (int i = 0; i < mapedRepo.length; i++) {
+      list.add(Repository.fromJson(mapedRepo[i]));
+    }
+    return list;
+  }
+
+  static String listToJSONStr(List<Repository> list) {
+    List<Map<String, dynamic>> mapList = [];
+    for (int i = 0; i < list.length; i++) {
+      mapList.add(list[i].toJson());
+    }
+
+    return json.encode(mapList);
   }
 
   String toJSONStr() {
     return json.encode(toJson());
-  }
-
-  void update() {
-    notifyListeners();
   }
 }

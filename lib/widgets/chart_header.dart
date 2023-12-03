@@ -24,7 +24,7 @@ class ChartHeader extends StatelessWidget {
               cacheExtent: 10,
               controller: GanttChartController.instance.daysScrollController,
               itemCount: GanttChartController.instance.viewRange!.length ~/ (24 / Configs.graphColumnsPeriod.inHours),
-              itemExtent: GanttChartController.instance.chartViewByViewRange * (24 / Configs.graphColumnsPeriod.inHours),
+              itemExtent: GanttChartController.instance.chartColumnsWidth * (24 / Configs.graphColumnsPeriod.inHours),
               scrollDirection: Axis.horizontal,
               itemBuilder:(context, index) {
                 return Container(
@@ -37,7 +37,7 @@ class ChartHeader extends StatelessWidget {
                       ),
                     )
                   ),
-                  width: GanttChartController.instance.chartViewByViewRange * (24 / Configs.graphColumnsPeriod.inHours),
+                  width: GanttChartController.instance.chartColumnsWidth * (24 / Configs.graphColumnsPeriod.inHours),
                   child: Text(
                     DateFormat('dd/MM/yyyy').format(GanttChartController.instance.viewRange![index * 12]),
                     textAlign: TextAlign.center,
@@ -54,7 +54,7 @@ class ChartHeader extends StatelessWidget {
               cacheExtent: 10,
               controller: GanttChartController.instance.hoursScrollController,
               itemCount: GanttChartController.instance.viewRange!.length,
-              itemExtent: GanttChartController.instance.chartViewByViewRange,
+              itemExtent: GanttChartController.instance.chartColumnsWidth,
               scrollDirection: Axis.horizontal,
               itemBuilder:(context, index) {
                 return Container(
@@ -67,7 +67,7 @@ class ChartHeader extends StatelessWidget {
                       ) : BorderSide.none,
                     )
                   ),
-                  width: GanttChartController.instance.chartViewByViewRange,
+                  width: GanttChartController.instance.chartColumnsWidth,
                   child: Text(
                     '${DateFormat('HH:mm').format(GanttChartController.instance.viewRange![index])}h',
                     textAlign: TextAlign.center,

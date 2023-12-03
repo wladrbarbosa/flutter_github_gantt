@@ -2,6 +2,8 @@
 //import 'dart:html';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_github_gantt/configs.dart';
+import 'package:flutter_github_gantt/controller/repos_controller.dart';
 import 'package:flutter_github_gantt/widgets/chart_bars_dependency_lines.dart';
 import 'package:flutter_github_gantt/widgets/gantt_chart.dart';
 import 'package:flutter_github_gantt/widgets/issues_list.dart';
@@ -64,6 +66,35 @@ class ChartPage extends StatelessWidget {
           });
 
           filteredUserData = userData.where((el) => el.title!.contains(GanttChartController.instance.filterController.text)).toList();
+          // Setando o valor das issues
+          for (Issue issue in filteredUserData) {
+            issue.value = 0;
+            issue.widthInColumns = GanttChartController.instance.calculateWidthInColumns(issue.startTime!, issue.endTime!);
+
+            for (int i = 0; i < issue.widthInColumns!; i++) {
+              int weekDayStartTime = issue.startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).weekday - 1;
+              int hourIndex = issue.startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).hour ~/ Configs.graphColumnsPeriod.inHours;
+              bool? specificDayHourOn;
+
+              if (ReposController.getRepoWorkSpecificDaysHoursById(issue.repo.nodeId!).isNotEmpty) {
+                DateTime temp = issue.startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours));
+                DateTime currentDate = DateTime(
+                  temp.year,
+                  temp.month,
+                  temp.day
+                );
+                if (ReposController.getRepoWorkSpecificDaysHoursById(issue.repo.nodeId!)[currentDate] != null &&
+                  ReposController.getRepoWorkSpecificDaysHoursById(issue.repo.nodeId!)[currentDate]!.isNotEmpty) {
+                  specificDayHourOn = ReposController.getRepoWorkSpecificDaysHoursById(issue.repo.nodeId!)[currentDate]!.contains(hourIndex);
+                }
+              }
+
+              if (ReposController.getRepoWorkWeekHoursById(issue.repo.nodeId!)[weekDayStartTime]!.isNotEmpty &&
+                ReposController.getRepoWorkWeekHoursById(issue.repo.nodeId!)[weekDayStartTime]!.contains(hourIndex) && specificDayHourOn != false || specificDayHourOn == true) {
+                issue.value += ReposController.getRepoPerHourValueById(issue.repo.nodeId!) * Configs.graphColumnsPeriod.inHours;
+              }
+            }
+          }
 
           MultiSplitView multiSplitView = MultiSplitView(
             children: [

@@ -4,12 +4,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_github_gantt/configs.dart';
+import 'package:flutter_github_gantt/controller/repos_controller.dart';
+import 'package:flutter_github_gantt/controller/repository.dart';
 import 'package:flutter_github_gantt/externals/github_api.dart';
-import 'package:flutter_github_gantt/model/assignees.dart';
-import 'package:flutter_github_gantt/model/label.dart';
-import 'package:flutter_github_gantt/model/milestone.dart';
 import 'package:flutter_github_gantt/model/rate_limit.dart';
-import 'package:flutter_github_gantt/view/new_issue_dialog.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,7 +16,6 @@ import '../model/user.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
 import '../externals/log.dart';
 import '../model/issue.dart';
-import 'repo_controller.dart';
 
 enum PanType {
   start,
@@ -29,17 +27,25 @@ class GanttChartController extends ChangeNotifier {
   double _issuesListWidth = 520;
   double? viewRangeOnScale = 0;
   double? viewRangeToFitScreen = 20;
+  static double chartPanelWidth = 0;
+  PageStorageBucket chartBucket = PageStorageBucket();
+  PageStorageBucket listBucket = PageStorageBucket();
+  PageStorageKey listStorageKey = const PageStorageKey('list');
   List<DateTime>? viewRange;
   Color? userColor;
   double initX = 0;
   double initY = 0;
   double dx = 0;
   double dy = 0;
+  // Para uma movimentação mais flúida
+  double get deltaScrollPos => horizontalController.offset - lastScrollPos;
+  bool isPanUpdateActive = false;
   bool isPanStartActive = false;
   bool isPanMiddleActive = false;
   bool isPanEndActive = false;
   GitHubAPI? gitHub;
   LinkedScrollControllerGroup controllers = LinkedScrollControllerGroup();
+  bool isTodayJumped = false;
   LinkedScrollControllerGroup horizontalController = LinkedScrollControllerGroup();
   List<Issue?> selectedIssues = [];
   double lastScrollPos = 0;
@@ -55,20 +61,16 @@ class GanttChartController extends ChangeNotifier {
   ScrollController chartDependencyLinesController = ScrollController();
   ScrollController listController = ScrollController();
   BuildContext? rootContext;
-  List<RepoController> reposList = [];
-  RepoController? repo;
+  static ReposController reposController = ReposController();
   late FocusNode focus;
   FocusAttachment? nodeAttachment;
   User? user;
   DateTime? fromDate;
   DateTime? toDate;
-  double detailsValue = 0;
+  double currentDragX = 0;
   SharedPreferences? prefs;
   static Future<List<Issue>>? issueListFuture;
   static List<Issue>? issueList;
-  Future<List<Assignee>>? assigneesListFuture;
-  Future<List<Label>>? labelsListFuture;
-  Future<List<Milestone>>? milestoneListFuture;
   RateLimit? rateLimit;
   double lastVerticalPos = 0;
   double lastHorizontalPos = 0;
@@ -77,12 +79,13 @@ class GanttChartController extends ChangeNotifier {
   int contextIssueIndex = -1;
   DateTime? onPointerDownTime;
   TextEditingController filterController = TextEditingController();
+  static List<Repository> selRepos = [];
 
   // torna esta classe singleton
   GanttChartController._privateConstructor();
   static final GanttChartController instance = GanttChartController._privateConstructor();
 
-  double get chartViewByViewRange {
+  double get chartColumnsWidth {
     return (chartViewWidth / viewRangeToFitScreen!).roundToDouble();
   }
 
@@ -186,24 +189,7 @@ class GanttChartController extends ChangeNotifier {
                 behavior: SnackBarBehavior.floating));
           break;
           case 3:
-            Future.wait<dynamic>(
-              [
-                assigneesListFuture!,
-                labelsListFuture!,
-                milestoneListFuture!
-              ]
-            ).then((value) async {
-              await showDialog(
-                context: context,
-                builder: (newIssueDialogContext) {
-                  return NewIssueDialog(
-                    assignees: value[0],
-                    labels: value[1],
-                    milestones: value[2],
-                  );
-                }
-              );
-            });
+            context.go('/newIssue');
           break;
         }
       });
@@ -259,25 +245,7 @@ class GanttChartController extends ChangeNotifier {
         switch (menuItem) {
           // Default precisa estar vazio por conta da não escolha
           case 1:
-            Future.wait<dynamic>(
-              [
-                assigneesListFuture!,
-                labelsListFuture!,
-                milestoneListFuture!
-              ]
-            ).then((value) async {
-              await showDialog(
-                context: context,
-                builder: (newIssueDialogContext) {
-                  return NewIssueDialog(
-                    assignees: value[0],
-                    labels: value[1],
-                    milestones: value[2],
-                    issue: selectedIssues[0],
-                  );
-                }
-              );
-            });
+            context.go('/updateIssue');
           break;
           case 2:
             gitHub!.deleteSelectedIssues();
@@ -300,7 +268,7 @@ class GanttChartController extends ChangeNotifier {
     viewRange = calculateNumberOfColumnsBetween(fromDate!, toDate!);
   }
 
-  int calculateRemainingWidth(
+  int calculateWidthInColumns(
       DateTime projectStartedAt, DateTime projectEndedAt) {
     int projectLength = calculateNumberOfColumnsBetween(projectStartedAt, projectEndedAt).length;
     if (projectStartedAt.compareTo(fromDate!) >= 0 && projectStartedAt.compareTo(toDate!) <= 0) {
@@ -319,7 +287,7 @@ class GanttChartController extends ChangeNotifier {
     return 0;
   }
 
-  int calculateDistanceToLeftBorder(DateTime projectStartedAt) {
+  int calculateColumnsToLeftBorder(DateTime projectStartedAt) {
     if (projectStartedAt.compareTo(fromDate!) <= 0) {
       return 0;
     } else {
@@ -327,7 +295,7 @@ class GanttChartController extends ChangeNotifier {
     }
   }
 
-  int calculateDistanceToRightBorder(DateTime projectEndedAt) {
+  int calculateColumnsToRightBorder(DateTime projectEndedAt) {
     if (projectEndedAt.compareTo(toDate!) > 0) {
       return 0;
     } else {
@@ -341,35 +309,96 @@ class GanttChartController extends ChangeNotifier {
       bool underChartLimits = false;
 
       if (selectedIssues[i]!.dragPosFactor.abs() >= 0.4 && selectedIssues[i] != null) {
-        Log.show('d', 'selectedIssues[i]!.width ${selectedIssues[i]!.width}');
+        if (isPanStartActive && selectedIssues[i]!.dragPosFactor.sign < 0) {
+          underChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos < horizontalController.offset;
 
-        if (isPanStartActive || (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0)) {
-          overChartLimits = calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewByViewRange - selectedIssues[i]!.width - (horizontalController.offset - lastScrollPos) <= 0;
-          underChartLimits = calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.offset - lastScrollPos) <= horizontalController.offset;
+          if (underChartLimits) {
+            Log.show('d', 'isPanStartActive && selectedIssues[i]!.dragPosFactor.sign < 0 - underChartLimits');
+            selectedIssues[i]!.deltaWidth = horizontalController.offset - calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanStartActive && selectedIssues[i]!.dragPosFactor.sign < 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
         }
-        
-        if (isPanEndActive || (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0)) {
-          overChartLimits = overChartLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.offset - lastScrollPos) <= chartViewByViewRange;
-          overChartLimits = overChartLimits || selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange >= viewRange!.length * chartViewByViewRange;
-          overChartLimits = overChartLimits || calculateDistanceToRightBorder(selectedIssues[i]!.endTime!) * chartViewByViewRange - selectedIssues[i]!.width - (horizontalController.offset - lastScrollPos) <= 0;
-          underChartLimits = underChartLimits || calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange + selectedIssues[i]!.width + (horizontalController.offset - lastScrollPos) + (selectedIssues[i]!.draggingRemainingWidth! * chartViewByViewRange) <= horizontalController.offset;
-        }
+        else if (isPanStartActive && selectedIssues[i]!.dragPosFactor.sign > 0) {
+          overChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos > horizontalController.offset + chartPanelWidth;
 
-        if (overChartLimits && !underChartLimits) {
-          selectedIssues[i]!.width = (calculateDistanceToRightBorder(selectedIssues[i]!.endTime!)) * chartViewByViewRange - horizontalController.offset;
-          //Log.show('d', 'overLimits && !underLimits selectedIssues[i]!.width ${selectedIssues[i]!.width}');
-          //Log.show('d', 'selectedIssues[i]!.remainingWidth! ${selectedIssues[i]!.remainingWidth!}');
-          //Log.show('d', 'GanttChartController.instance.chartViewByViewRange ${GanttChartController.instance.chartViewByViewRange}');
+          if (overChartLimits) {
+            Log.show('d', 'isPanStartActive && selectedIssues[i]!.dragPosFactor.sign > 0 - overChartLimits');
+            selectedIssues[i]!.deltaWidth = (horizontalController.offset + chartPanelWidth) - calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth - chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanStartActive && selectedIssues[i]!.dragPosFactor.sign > 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
         }
-        else if (underChartLimits && !overChartLimits) {
-          selectedIssues[i]!.width = -(calculateDistanceToLeftBorder(selectedIssues[i]!.startTime!) * chartViewByViewRange - horizontalController.offset);
-          //Log.show('d', 'underLimits && !overLimits selectedIssues[i]!.width ${selectedIssues[i]!.width}');
-          //Log.show('d', 'selectedIssues[i]!.remainingWidth! ${selectedIssues[i]!.remainingWidth!}');
-          //Log.show('d', 'GanttChartController.instance.chartViewByViewRange ${GanttChartController.instance.chartViewByViewRange}');
+        else if (isPanEndActive && selectedIssues[i]!.dragPosFactor.sign < 0) {
+          underChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos < horizontalController.offset;
+
+          if (underChartLimits) {
+            Log.show('d', 'isPanEndActive && selectedIssues[i]!.dragPosFactor.sign < 0 - underChartLimits');
+            selectedIssues[i]!.deltaWidth = horizontalController.offset - calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth + chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanEndActive && selectedIssues[i]!.dragPosFactor.sign < 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
         }
-        else if (!underChartLimits && !overChartLimits) {
-          selectedIssues[i]!.width += horizontalController.offset - lastScrollPos;
+        else if (isPanEndActive && selectedIssues[i]!.dragPosFactor.sign > 0) {
+          overChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos > horizontalController.offset + chartPanelWidth;
+
+          if (overChartLimits) {
+            Log.show('d', 'isPanEndActive && selectedIssues[i]!.dragPosFactor.sign > 0 - overChartLimits');
+            selectedIssues[i]!.deltaWidth = (horizontalController.offset + chartPanelWidth) - calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanEndActive && selectedIssues[i]!.dragPosFactor.sign > 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
         }
+        else if (isPanMiddleActive) {
+          selectedIssues[i]!.deltaWidth += deltaScrollPos;
+        }
+        /*else if (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0) {
+          underChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos < horizontalController.offset;
+
+          if (underChartLimits) {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0 - underChartLimits');
+            selectedIssues[i]!.deltaWidth = horizontalController.offset - calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
+
+          bool overChartMaxLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos > horizontalController.offset + chartPanelWidth
+            && horizontalController.offset + chartPanelWidth == calculateNumberOfColumnsBetween(fromDate!, toDate!).length * chartColumnsWidth;
+
+          if (overChartMaxLimits) {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign < 0 - overChartMaxLimits');
+            selectedIssues[i]!.deltaWidth = (horizontalController.offset + chartPanelWidth) - calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth;
+          }
+        }
+        else if (isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0) {
+          overChartLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos > horizontalController.offset + chartPanelWidth;
+
+          if (overChartLimits) {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0 - overChartLimits');
+            selectedIssues[i]!.deltaWidth = (horizontalController.offset + chartPanelWidth) - calculateColumnsToLeftBorder(selectedIssues[i]!.endTime!) * chartColumnsWidth;
+          }
+          else {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0 - none');
+            selectedIssues[i]!.deltaWidth += deltaScrollPos;
+          }
+
+          bool underChartMaxLimits = calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth + selectedIssues[i]!.deltaWidth + deltaScrollPos <= 0;
+
+          if (underChartMaxLimits) {
+            Log.show('d', 'isPanMiddleActive && selectedIssues[i]!.dragPosFactor.sign > 0 - underChartMaxLimits');
+            selectedIssues[i]!.deltaWidth = horizontalController.offset - calculateColumnsToLeftBorder(selectedIssues[i]!.startTime!) * chartColumnsWidth;
+          }
+        }*/
       }
     }
 
@@ -377,8 +406,6 @@ class GanttChartController extends ChangeNotifier {
   }
 
   initialize() {
-    focus = FocusNode(debugLabel: 'Button');
-    focus.requestFocus();
     columnsScrollController = horizontalController.addAndGet();
     hoursScrollController = horizontalController.addAndGet();
     daysScrollController = horizontalController.addAndGet();
@@ -424,12 +451,13 @@ class GanttChartController extends ChangeNotifier {
   }
 
   void onIssueStartUpdate(BuildContext context, DragUpdateDetails details, double chartAreaWidth) {
-    detailsValue = details.globalPosition.dx;
+    currentDragX = details.globalPosition.dx;
+    isPanUpdateActive = true;
 
     for (int j = 0; j < selectedIssues.length; j++) {
-      if (selectedIssues[j]!.remainingWidth! * chartViewByViewRange - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) >= chartViewByViewRange) {
-        if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewByViewRange + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
-          selectedIssues[j]!.width = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
+      if (selectedIssues[j]!.widthInColumns! * chartColumnsWidth - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) >= chartColumnsWidth) {
+        if (calculateColumnsToLeftBorder(selectedIssues[j]!.startTime!) * chartColumnsWidth + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
+          selectedIssues[j]!.deltaWidth = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
           selectedIssues[j]!.dragPosFactor = (details.globalPosition.dx - (MediaQuery.of(context).size.width - chartAreaWidth)) / chartAreaWidth - 0.5;
         }
         else {
@@ -438,17 +466,19 @@ class GanttChartController extends ChangeNotifier {
       }
       else {
         selectedIssues[j]!.dragPosFactor = 0;
-        selectedIssues[j]!.width = (selectedIssues[j]!.remainingWidth! - 1) * chartViewByViewRange;
+        selectedIssues[j]!.deltaWidth = (selectedIssues[j]!.widthInColumns! - 1) * chartColumnsWidth;
       }
     }
   }
 
   void onIssueEndUpdate(BuildContext context, DragUpdateDetails details, double chartAreaWidth) {
+    currentDragX = details.globalPosition.dx;
+    isPanUpdateActive = true;
+
     for (int j = 0; j < selectedIssues.length; j++) {
-      if (selectedIssues[j]!.remainingWidth! * chartViewByViewRange + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) >= chartViewByViewRange) {
-        if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewByViewRange - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) < chartViewByViewRange * viewRange!.length &&
-          calculateDistanceToRightBorder(selectedIssues[j]!.endTime!) * chartViewByViewRange - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
-          selectedIssues[j]!.width = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
+      if (selectedIssues[j]!.widthInColumns! * chartColumnsWidth + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) >= chartColumnsWidth) {
+        if (calculateColumnsToRightBorder(selectedIssues[j]!.endTime!) * chartColumnsWidth - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
+          selectedIssues[j]!.deltaWidth = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
           selectedIssues[j]!.dragPosFactor = (details.globalPosition.dx - (MediaQuery.of(context).size.width - chartAreaWidth)) / chartAreaWidth - 0.5;
         }
         else {
@@ -457,17 +487,22 @@ class GanttChartController extends ChangeNotifier {
       }
       else {
         selectedIssues[j]!.dragPosFactor = 0;
-        selectedIssues[j]!.width = (selectedIssues[j]!.remainingWidth! - 1) * chartViewByViewRange;
+        selectedIssues[j]!.deltaWidth = (selectedIssues[j]!.widthInColumns! - 1) * chartColumnsWidth;
       }
     }
   }
 
   void onIssueDateUpdate(BuildContext context, DragUpdateDetails details, double chartAreaWidth) {
+    currentDragX = details.globalPosition.dx;
+    isPanUpdateActive = true;
+
     for (int j = 0; j < selectedIssues.length; j++) {
-      if (calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewByViewRange + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0 &&
-        calculateDistanceToLeftBorder(selectedIssues[j]!.startTime!) * chartViewByViewRange + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) < chartViewByViewRange * viewRange!.length &&
-        calculateDistanceToRightBorder(selectedIssues[j]!.endTime!) * chartViewByViewRange - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
-        selectedIssues[j]!.width = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
+      Log.show('d', '${selectedIssues[j]!.deltaWidth}');
+
+      if (calculateColumnsToLeftBorder(selectedIssues[j]!.startTime!) * chartColumnsWidth + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0 &&
+        calculateColumnsToLeftBorder(selectedIssues[j]!.startTime!) * chartColumnsWidth + (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) < chartColumnsWidth * viewRange!.length &&
+        calculateColumnsToRightBorder(selectedIssues[j]!.endTime!) * chartColumnsWidth - (details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset)) > 0) {
+        selectedIssues[j]!.deltaWidth = details.globalPosition.dx - initX - (selectedIssues[j]!.startPanChartPos - horizontalController.offset);
         selectedIssues[j]!.dragPosFactor = (details.globalPosition.dx - (MediaQuery.of(context).size.width - chartAreaWidth)) / chartAreaWidth - 0.5;
       }
       else {
@@ -478,7 +513,7 @@ class GanttChartController extends ChangeNotifier {
 
   void onIssueStartPan(PanType type, double startMousePos) {
     for (int j = 0; j < selectedIssues.length; j++) {
-      selectedIssues[j]!.draggingRemainingWidth = selectedIssues[j]!.remainingWidth!;
+      selectedIssues[j]!.draggingRemainingWidth = selectedIssues[j]!.widthInColumns!;
       selectedIssues[j]!.startPanChartPos = horizontalController.offset;
     }
     
@@ -501,63 +536,67 @@ class GanttChartController extends ChangeNotifier {
   void onIssuePanCancel(PanType type) {
     for (int j = 0; j < selectedIssues.length; j++) {
       selectedIssues[j]!.dragPosFactor = 0;
-      selectedIssues[j]!.width = 0;
-      selectedIssues[j]!.remainingWidth = selectedIssues[j]!.remainingWidth! + dx.toInt();
+      selectedIssues[j]!.deltaWidth = 0;
+      selectedIssues[j]!.widthInColumns = selectedIssues[j]!.widthInColumns! + dx.toInt();
     }
 
     isPanStartActive = false;
     isPanEndActive = false;
     isPanMiddleActive = false;
+    isPanUpdateActive = false;
     update();
   }
 
   void onIssueEndPan(PanType type) {
     for (int j = 0; j < selectedIssues.length; j++) {
-      int triHoursInterval = (selectedIssues[j]!.width / (chartViewByViewRange)).abs().round() * Configs.graphColumnsPeriod.inHours;
+      int triHoursInterval = (selectedIssues[j]!.deltaWidth / (chartColumnsWidth)).abs().round() * Configs.graphColumnsPeriod.inHours;
 
       if (triHoursInterval > 0) {
         if (type == PanType.start || type == PanType.middle) {
-          if (selectedIssues[j]!.width > (chartViewByViewRange * 0.5)) {
+          if (selectedIssues[j]!.deltaWidth > (chartColumnsWidth * 0.5)) {
             selectedIssues[j]!.startTime = selectedIssues[j]!.startTime!.add(Duration(hours: triHoursInterval));
-          } else if (selectedIssues[j]!.width < -(chartViewByViewRange * 0.5)) {
+          } else if (selectedIssues[j]!.deltaWidth < -(chartColumnsWidth * 0.5)) {
             selectedIssues[j]!.startTime = selectedIssues[j]!.startTime!.subtract(Duration(hours: triHoursInterval));
           }
         }
 
         if (type == PanType.end || type == PanType.middle) {
-          if (selectedIssues[j]!.width > (chartViewByViewRange * 0.5)) {
+          if (selectedIssues[j]!.deltaWidth > (chartColumnsWidth * 0.5)) {
             selectedIssues[j]!.endTime = selectedIssues[j]!.endTime!.add(Duration(hours: triHoursInterval));
-          } else if (selectedIssues[j]!.width < -(chartViewByViewRange * 0.5)) {
+          } else if (selectedIssues[j]!.deltaWidth < -(chartColumnsWidth * 0.5)) {
             selectedIssues[j]!.endTime = selectedIssues[j]!.endTime!.subtract(Duration(hours: triHoursInterval));
           }
         }
 
-        selectedIssues[j]!.width = 0;
+        selectedIssues[j]!.deltaWidth = 0;
         selectedIssues[j]!.toggleProcessing();
 
         gitHub!.updateIssueTime(selectedIssues[j]!).then((value) async {
-          Issue? temp = selectedIssues.singleWhereOrNull((el) => el!.number == value.number);
+          if (value != null) {
+            Issue? temp = selectedIssues.singleWhereOrNull((el) => el!.nodeId == value.nodeId);
 
-          if (temp != null) {
-            temp.body = value.body;
-            temp.startTime = value.startTime;
-            temp.endTime = value.endTime;
-            temp.state = value.state;
-            temp.title = value.title;
-            temp.value = value.value;
-            temp.dragPosFactor = 0;
-            temp.remainingWidth = temp.remainingWidth! + dx.toInt();
-            temp.toggleProcessing();
+            if (temp != null) {
+              temp.body = value.body;
+              temp.startTime = value.startTime;
+              temp.endTime = value.endTime;
+              temp.state = value.state;
+              temp.title = value.title;
+              temp.value = value.value;
+              temp.dragPosFactor = 0;
+              temp.widthInColumns = temp.widthInColumns! + dx.toInt();
+              temp.toggleProcessing();
 
-            if (j == selectedIssues.length - 1) {
-              isPanStartActive = false;
-              isPanEndActive = false;
-              isPanMiddleActive = false;
-              update();
+              if (j == selectedIssues.length - 1) {
+                isPanStartActive = false;
+                isPanEndActive = false;
+                isPanMiddleActive = false;
+                isPanUpdateActive = false;
+                update();
+              }
             }
-          }
-          else {
-            Log.show('d', 'Issue #${value.number} não está mais selecionada.');
+            else {
+              Log.show('d', 'Issue #${value.number} não está mais selecionada.');
+            }
           }
         });
       }
@@ -565,7 +604,8 @@ class GanttChartController extends ChangeNotifier {
         isPanStartActive = false;
         isPanEndActive = false;
         isPanMiddleActive = false;
-        selectedIssues[j]!.width = 0;
+        isPanUpdateActive = false;
+        selectedIssues[j]!.deltaWidth = 0;
         selectedIssues[j]!.dragPosFactor = 0;
         selectedIssues[j]!.update();
         update();
@@ -615,7 +655,7 @@ class GanttChartController extends ChangeNotifier {
 
       if (issue.selected) {
         horizontalController.animateTo(
-          GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) * GanttChartController.instance.chartViewByViewRange,
+          GanttChartController.instance.calculateColumnsToLeftBorder(issue.startTime!.subtract(Duration(hours: Configs.graphColumnsPeriod.inHours * 3))) * GanttChartController.instance.chartColumnsWidth,
           curve: Curves.easeOut,
           duration: const Duration(milliseconds: 1000),
         );

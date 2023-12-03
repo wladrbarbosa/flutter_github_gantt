@@ -21,15 +21,15 @@ class GanttChart extends StatelessWidget {
   );
 
   static void scale(double deltaX, double deltaY) {
-    double percent = GanttChartController.instance.horizontalController.offset * 100 / (GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length);
+    double percent = GanttChartController.instance.horizontalController.offset * 100 / (GanttChartController.instance.chartColumnsWidth * GanttChartController.instance.viewRange!.length);
     GanttChartController.instance.viewRangeToFitScreen = GanttChartController.instance.viewRangeToFitScreen! + deltaY;
 
     if (deltaY.sign < 0) {
-      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 + deltaX * GanttChartController.instance.chartViewByViewRange / 2);
+      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartColumnsWidth * GanttChartController.instance.viewRange!.length * percent / 100 + deltaX * GanttChartController.instance.chartColumnsWidth / 2);
       GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
     }
     else {
-      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartViewByViewRange * GanttChartController.instance.viewRange!.length * percent / 100 - deltaX * GanttChartController.instance.chartViewByViewRange / 2);
+      GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.chartColumnsWidth * GanttChartController.instance.viewRange!.length * percent / 100 - deltaX * GanttChartController.instance.chartColumnsWidth / 2);
       GanttChartController.instance.controllers.jumpTo(GanttChartController.instance.chartBarsController.position.pixels);
     }
 
@@ -57,56 +57,61 @@ class GanttChart extends StatelessWidget {
                   scale(scaleFactor / 10, scaleFactor / 10);
               }
             },
-            child: LayoutBuilder(
-              builder: (chartContext, constraints) {
-                return Stack(
-                  children: [
-                    // Não tornar ChartGrid constante, senão zoomin e out não funcioinarão corretamente
-                    // ignore: prefer_const_constructors
-                    ChartGrid(),
-                    SingleChildScrollView(
-                      controller: GanttChartController.instance.singleChildScrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanMiddleActive ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
-                      child: SizedBox(
-                        width: GanttChartController.instance.calculateNumberOfColumnsBetween(GanttChartController.instance.fromDate!, GanttChartController.instance.toDate!).length * GanttChartController.instance.chartViewByViewRange,
-                        child: Listener(
-                          onPointerSignal: (pointerSignal){
-                            if(pointerSignal is PointerScrollEvent && GanttChartController.instance.isAltPressed){
-                                if ((GanttChartController.instance.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
-                                  (GanttChartController.instance.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
-                                    scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
-                                }
-                            }
-                          },
-                          onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, chartContext),
-                          onPointerUp: (event) async => await GanttChartController.instance.onPointerUp(event, chartContext),
-                          onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            fit: StackFit.passthrough,
-                            children: <Widget>[
-                              ChartBarsDependencyLines(
-                                constraints: constraints,
-                                color: _backgroundColor,
-                                data: _issuesList,
-                              ),
-                              ChartBars(
-                                constraints: constraints,
-                                color: _backgroundColor,
-                                data: _issuesList,
-                              ),
-                            ],
+            child: PageStorage(
+              bucket: GanttChartController.instance.chartBucket,
+              child: LayoutBuilder(
+                builder: (chartContext, constraints) {
+                  GanttChartController.chartPanelWidth = constraints.biggest.width;
+
+                  return Stack(
+                    children: [
+                      // Não tornar ChartGrid constante, senão zoomin e out não funcioinarão corretamente
+                      // ignore: prefer_const_constructors
+                      ChartGrid(),
+                      SingleChildScrollView(
+                        controller: GanttChartController.instance.singleChildScrollController,
+                        scrollDirection: Axis.horizontal,
+                        physics: GanttChartController.instance.isPanStartActive || GanttChartController.instance.isPanEndActive || GanttChartController.instance.isPanMiddleActive ? const NeverScrollableScrollPhysics() : const ClampingScrollPhysics(),
+                        child: SizedBox(
+                          width: GanttChartController.instance.calculateNumberOfColumnsBetween(GanttChartController.instance.fromDate!, GanttChartController.instance.toDate!).length * GanttChartController.instance.chartColumnsWidth,
+                          child: Listener(
+                            onPointerSignal: (pointerSignal){
+                              if(pointerSignal is PointerScrollEvent && GanttChartController.instance.isAltPressed){
+                                  if ((GanttChartController.instance.viewRangeToFitScreen! > 1 || pointerSignal.scrollDelta.dy.sign > 0) &&
+                                    (GanttChartController.instance.viewRangeToFitScreen! <= 55 || pointerSignal.scrollDelta.dy.sign < 0)) {
+                                      scale(pointerSignal.scrollDelta.dx.sign, pointerSignal.scrollDelta.dy.sign);
+                                  }
+                              }
+                            },
+                            onPointerDown: (event) async => await GanttChartController.instance.onPointerDown(event, chartContext),
+                            onPointerUp: (event) async => await GanttChartController.instance.onPointerUp(event, chartContext),
+                            onPointerMove: (event) async => GanttChartController.instance.onPointerDownTime = null,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              fit: StackFit.passthrough,
+                              children: <Widget>[
+                                ChartBarsDependencyLines(
+                                  constraints: constraints,
+                                  color: _backgroundColor,
+                                  data: _issuesList,
+                                ),
+                                ChartBars(
+                                  constraints: constraints,
+                                  color: _backgroundColor,
+                                  data: _issuesList,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      )
-                    ),
-                    ChartHeader(
-                      color: _backgroundColor,
-                    ),
-                  ],
-                );
-              }
+                        )
+                      ),
+                      ChartHeader(
+                        color: _backgroundColor,
+                      ),
+                    ],
+                  );
+                }
+              ),
             ),
           ),
         ),

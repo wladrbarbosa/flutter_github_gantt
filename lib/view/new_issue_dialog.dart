@@ -1,6 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
+import 'package:flutter_github_gantt/controller/repos_controller.dart';
+import 'package:flutter_github_gantt/controller/repository.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/issue.dart';
 import 'package:flutter_github_gantt/model/label.dart';
@@ -11,17 +14,11 @@ import 'package:multi_select_flutter/dialog/mult_select_dialog.dart';
 import 'package:multi_select_flutter/util/multi_select_item.dart';
 
 class NewIssueDialog extends StatefulWidget {
-  final List<Assignee>? assignees;
-  final List<Label>? labels;
-  final List<Milestone>? milestones;
-  final Issue? issue;
-
+  final bool isUpdate;
+  
   const NewIssueDialog({
     Key? key,
-    this.assignees,
-    this.labels,
-    required this.milestones,
-    this.issue,
+    this.isUpdate = false
   }) : super(key: key);
 
   @override
@@ -42,25 +39,31 @@ class NewIssueDialogState extends State<NewIssueDialog> {
   bool _haveTiming = false;
   bool _isClosed = false;
   bool touchMoves = false;
+  Repository? selRepo;
+  Issue? issue;
 
   @override
   void initState() {
-    _titleController = TextEditingController(text: widget.issue != null ? widget.issue!.title : '');
-    _bodyController = TextEditingController(text: widget.issue != null ? widget.issue!.body!.replaceAll(RegExp(r'```.*```', dotAll: true), '').replaceAll('\n', '') : '');
+    if (widget.isUpdate && GanttChartController.instance.selectedIssues.isNotEmpty) {
+      issue = GanttChartController.instance.selectedIssues[0];
+    }
+    
+    _titleController = TextEditingController(text: issue != null ? issue!.title : '');
+    _bodyController = TextEditingController(text: issue != null ? issue!.body!.replaceAll(RegExp(r'```.*```', dotAll: true), '').replaceAll('\n', '') : '');
 
-    if (widget.issue != null) {
-      _haveTiming = RegExp(r'```yaml(\n.*)*```').hasMatch(widget.issue!.body!);
-      _selAssignees = widget.issue!.assignees!;
-      _selLabels = widget.issue!.labels!;
-      _selMilestone = widget.issue!.milestone;
-      _isClosed = widget.issue!.state == 'closed';
-      _selDepIssues = widget.issue!.dependencies;
-      _periodoDaTarefa = GanttChartController.parseIssueBody(widget.issue!);
+    if (issue != null) {
+      _haveTiming = RegExp(r'```yaml(\n.*)*```').hasMatch(issue!.body!);
+      _selAssignees = issue!.assignees!;
+      _selLabels = issue!.labels!;
+      _selMilestone = issue!.milestone;
+      _isClosed = issue!.state == 'closed';
+      _selDepIssues = issue!.dependencies;
+      _periodoDaTarefa = GanttChartController.parseIssueBody(issue!);
       _horaInicioDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.start);
       _horaFimDaTarefa = TimeOfDay.fromDateTime(_periodoDaTarefa!.end);
+      selRepo = issue!.repo;
     }
     else {
-      _selAssignees.add(widget.assignees!.singleWhere((el) => el.login == GanttChartController.instance.user!.login));
       _horaInicioDaTarefa = TimeOfDay.now();
       _horaFimDaTarefa = TimeOfDay.now();
 
@@ -79,6 +82,11 @@ class NewIssueDialogState extends State<NewIssueDialog> {
         hour: horaFimDaTarefaTemp,
         minute: 0,
       );
+    }
+
+    // Para resolver problema em criar tarefa próximo das 00h
+    if (_periodoDaTarefa!.start.difference(_periodoDaTarefa!.end).inDays == 0 && _horaFimDaTarefa.hour < _horaInicioDaTarefa.hour) {
+      _periodoDaTarefa = DateTimeRange(start: _periodoDaTarefa!.start, end: _periodoDaTarefa!.start.add(const Duration(days: 1)));
     }
 
     super.initState();
@@ -154,7 +162,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                       return null;
                     },
                   ),
-                  widget.issue != null ? Row(
+                  issue != null ? Row(
                     children: [
                       const Text(
                         'Fechada?'
@@ -182,12 +190,56 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                       hintText: 'Descrição da tarefa',
                     ),
                   ),
+                  Row(
+                    children: [
+                      const Text(
+                        'Repo:'
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: selRepo == null ? null : selRepo!.id,
+                          onChanged: (newValue) {
+                            setState(() {
+                              GanttChartController.instance.isTodayJumped = false;
+                              selRepo = ReposController.repos.singleWhereOrNull((e) => e.id == newValue);
+                              _selAssignees.clear();
+                              _selAssignees.addAll(selRepo!.assigneesList ?? []);
+                            });
+                          },
+                          disabledHint: const Text(
+                            'Selecione o repositório...',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          hint: const Text(
+                            'Selecione o repositório...',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          items: GanttChartController.selRepos.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
+                            value: e.id,
+                            child: Text(
+                              e.name!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )).toList()
+                        ),
+                      ),
+                    ],
+                  ),
                   DropdownButtonFormField<int>(
-                    value: _selMilestone == null ? widget.milestones!.isNotEmpty ? widget.milestones![0].id : null : _selMilestone!.id,
+                    value: _selMilestone == null
+                      ? selRepo != null && selRepo!.milestoneList != null && selRepo!.milestoneList!.isNotEmpty
+                        ? selRepo!.milestoneList![0].id
+                        : null
+                      : _selMilestone!.id,
                     hint: const Text(
                       'Milestone',
                     ),
-                    items: widget.milestones!.map<DropdownMenuItem<int>>((e) {
+                    items: (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).milestoneList : [])!.map<DropdownMenuItem<int>>((e) {
                       return DropdownMenuItem<int>(
                         value: e.id,
                         child: Text(
@@ -197,7 +249,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                     }).toList(),
                     onChanged: (value) {
                       setState(() {
-                        _selMilestone = widget.milestones!.firstWhere((el) => el.id == value);
+                        _selMilestone = selRepo!.milestoneList!.firstWhere((el) => el.id == value);
                       });
                     }
                   ),
@@ -333,7 +385,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                                 itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                                items: widget.assignees!.map<MultiSelectItem<int>>((e) {
+                                items: (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).assigneesList ?? [] : []).map<MultiSelectItem<int>>((e) {
                                   return MultiSelectItem<int>(
                                     e.id!,
                                     e.login!,
@@ -342,7 +394,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                                 initialValue: _selAssignees.map<int>((e) => e.id!).toList(),
                                 onConfirm: (values) {
                                   setState(() {
-                                    _selAssignees = widget.assignees!.where((el) => values.contains(el.id)).toList();
+                                    _selAssignees = (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).assigneesList ?? [] : <Assignee>[]).where((el) => values.contains(el.id)).toList();
                                   });
                                 },
                               ),
@@ -360,7 +412,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                       child: _selAssignees.isNotEmpty ? MultiSelectChipDisplay<Assignee>(
                         height: 40,
                         scroll: true,
-                        items: _selAssignees.map<MultiSelectItem<Assignee>>((e) {
+                        items: (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).assigneesList ?? [] : []).map<MultiSelectItem<Assignee>>((e) {
                           return MultiSelectItem<Assignee>(
                             e,
                             e.login!,
@@ -398,7 +450,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                                 itemsTextStyle: const TextStyle(color: Colors.white),
                                 checkColor: Theme.of(context).primaryColor,
                                 selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
-                                items: widget.labels!.map<MultiSelectItem<int>>((e) {
+                                items: (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).labelsList ?? [] : []).map<MultiSelectItem<int>>((e) {
                                   return MultiSelectItem<int>(
                                     e.id!,
                                     e.name!,
@@ -407,7 +459,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                                 initialValue: _selLabels.map<int>((e) => e.id!).toList(),
                                 onConfirm: (values) {
                                   setState(() {
-                                    _selLabels = widget.labels!.where((el) => values.contains(el.id)).toList();
+                                    _selLabels = (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).labelsList ?? [] : <Label>[]).where((el) => values.contains(el.id)).toList();
                                   });
                                 },
                               ),
@@ -425,7 +477,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                       child: _selLabels.isNotEmpty ? MultiSelectChipDisplay<Label>(
                         height: 40,
                         scroll: true,
-                        items: _selLabels.map<MultiSelectItem<Label>>((e) {
+                        items: (selRepo != null ? GanttChartController.selRepos.singleWhere((el) => el.nodeId == selRepo!.nodeId).labelsList ?? [] : []).map<MultiSelectItem<Label>>((e) {
                           return MultiSelectItem<Label>(
                             e,
                             e.name!,
@@ -538,7 +590,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                           _periodoDaTarefa = DateTimeRange(start: inicio, end: fim);
                           String metaInfo = '```yaml\nstart_date: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(_periodoDaTarefa != null ? _periodoDaTarefa!.start : inicio)}\ndue_date: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(_periodoDaTarefa != null ? _periodoDaTarefa!.end : fim)}\nprogress: 0\nparent: ${_selDepIssues.fold('', (previousValue, el) => '$previousValue${previousValue != '' ? ',' : ''}$el')}\n```${_haveTiming ? '' : '\n\n'}';
 
-                          if (widget.issue != null) {
+                          if (issue != null) {
                             GanttChartController.instance.gitHub!.updateIssue(
                               _titleController.text,
                               metaInfo + _bodyController.text,
@@ -555,6 +607,7 @@ class NewIssueDialogState extends State<NewIssueDialog> {
                             GanttChartController.instance.gitHub!.createIssue(
                               _titleController.text,
                               metaInfo + _bodyController.text,
+                              selRepo!,
                               _selMilestone == null ? null : _selMilestone!.number,
                               _selAssignees.map<String>((e) => e.login!).toList(),
                               _selLabels.map<String>((e) => e.name!).toList(),

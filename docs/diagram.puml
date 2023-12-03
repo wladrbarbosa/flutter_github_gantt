@@ -55,9 +55,9 @@ class "flutter_github_gantt::Controller::GanttChartController.dart::GanttChartCo
   +Future<void> onIssueRightButton()
   +void addDaysOnStart()
   +void addDaysOnEnd()
-  +int calculateRemainingWidth()
-  +int calculateDistanceToLeftBorder()
-  +int calculateDistanceToRightBorder()
+  +int calculateWidthInColumns()
+  +int calculateColumnsToLeftBorder()
+  +int calculateColumnsToRightBorder()
   +void onScrollChange()
   +dynamic initialize()
   +dynamic setContext()
@@ -331,7 +331,7 @@ class "flutter_github_gantt::Model::Issue.dart::Issue" {
   +bool processing
   +double dragPosFactor
   +int? draggingRemainingWidth
-  +int? remainingWidth
+  +int? widthInColumns
   +double startPanChartPos
   +DateTime? startTime
   +DateTime? endTime

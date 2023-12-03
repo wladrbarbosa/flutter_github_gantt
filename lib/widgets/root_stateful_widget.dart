@@ -1,14 +1,17 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
-import 'package:flutter_github_gantt/controller/repo_controller.dart';
+import 'package:flutter_github_gantt/controller/repos_controller.dart';
+import 'package:flutter_github_gantt/controller/repository.dart';
 import 'package:flutter_github_gantt/widgets/repo_widget.dart';
 import 'package:flutter_github_gantt/externals/github_api.dart';
 import 'package:flutter_github_gantt/model/user.dart';
-import 'package:flutter_github_gantt/view/about_view.dart';
 import 'package:flutter_github_gantt/widgets/fgc_text_field.dart';
 import 'package:flutter_github_gantt/widgets/update_button.dart';
+import 'package:go_router/go_router.dart';
+import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
+import 'package:multi_select_flutter/dialog/mult_select_dialog.dart';
+import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'package:provider/provider.dart';
 
 class RootStatefulWidget extends StatefulWidget {
@@ -32,6 +35,7 @@ class RootStatefulWidget extends StatefulWidget {
 class RootStatefulWidgetState extends State<RootStatefulWidget> {
   final TextEditingController _userToken = TextEditingController();
   Future<User?>? _user;
+  bool touchMoves = false;
 
   void update() {
     setState((){
@@ -42,6 +46,7 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
   void initState() {
     super.initState();
     GanttChartController.instance.initialize();
+    GanttChartController.instance.focus = FocusNode(debugLabel: 'Button');
     GanttChartController.instance.refreshFocusAttachment(context);
     GanttChartController.instance.gitHub = GitHubAPI();
     _user = GanttChartController.instance.gitHub!.getUser(_userToken, update);
@@ -49,6 +54,12 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
 
   @override
   Widget build(BuildContext context) {
+    MediaQueryData mediaQuery = MediaQuery.of(context);
+
+    if (GoRouterState.of(context).location == '/') {
+      GanttChartController.instance.focus.requestFocus();
+    }
+
     if (GanttChartController.instance.rootContext == null) {
       GanttChartController.instance.setContext(context, GanttChartController.instance.issuesListWidth);
     }
@@ -80,12 +91,7 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                 const UpdateButton(),
                 TextButton(
                   onPressed: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (newIssueDialogContext) {
-                        return const About();
-                      }
-                    );
+                    context.go('/about');
                   },
                   child: const Icon(
                     Icons.settings,
@@ -124,37 +130,84 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     const Text(
-                      'Repo:'
+                      'Repos:'
                     ),
-                    SizedBox(
-                      width: 250,
-                      child: DropdownButton<int>(
-                        isExpanded: true,
-                        value: GanttChartController.instance.repo == null ? null : GanttChartController.instance.repo!.id,
-                        onChanged: (newValue) {
-                          setState(() {
-                            GanttChartController.instance.repo = GanttChartController.instance.reposList.singleWhereOrNull((e) => e.id == newValue);
-                            GanttChartController.instance.prefs!.setString('repo', GanttChartController.instance.repo!.toJSONStr());
-                          });
+                    Container(
+                      alignment: Alignment.centerLeft,
+                      width: 600,
+                      child: GestureDetector(
+                        onTap: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (ctx) {
+                              return  Container(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: mediaQuery.size.width / 10,
+                                  vertical: mediaQuery.size.height / 10,
+                                ),
+                                child: MultiSelectDialog<int>(
+                                  cancelText: const Text(
+                                    'Cancelar'
+                                  ),
+                                  confirmText: const Text(
+                                    'Confirmar'
+                                  ),
+                                  selectedColor: Theme.of(context).primaryColor,
+                                  unselectedColor: Colors.white,
+                                  searchHint: 'Pesquisar',
+                                  title: const Text('Pesquisar'),
+                                  itemsTextStyle: const TextStyle(color: Colors.white),
+                                  checkColor: Theme.of(context).primaryColor,
+                                  selectedItemsTextStyle: TextStyle(color: Theme.of(context).primaryColor),
+                                  items: ReposController.repos.map<MultiSelectItem<int>>((e) {
+                                    return MultiSelectItem<int>(
+                                      e.id!,
+                                      e.name!,
+                                    );
+                                  }).toList(),
+                                  initialValue: GanttChartController.selRepos.map<int>((e) => e.id!).toList(),
+                                  onConfirm: (values) {
+                                    List<Repository> newSelection = ReposController.repos.where((el) => values.contains(el.id)).toList();
+
+                                    if (GanttChartController.selRepos != newSelection) {
+                                      setState(() {
+                                        GanttChartController.instance.gitHub!.reloadIssues();
+                                        GanttChartController.instance.isTodayJumped = false;
+                                        GanttChartController.selRepos = newSelection;
+                                        GanttChartController.instance.prefs!.setString('repos', Repository.listToJSONStr(GanttChartController.selRepos));
+                                      });
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          );
                         },
-                        disabledHint: const Text(
-                          'Selecione o repositório...',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        hint: const Text(
-                          'Selecione o repositório...',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        items: GanttChartController.instance.reposList.map<DropdownMenuItem<int>>((e) => DropdownMenuItem<int>(
-                          value: e.id,
-                          child: Text(
-                            e.name!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        child: Container(
+                          height: 40,
+                          color: Colors.transparent,
+                          child: GanttChartController.selRepos.isNotEmpty ? MultiSelectChipDisplay<Repository>(
+                            height: 40,
+                            scroll: true,
+                            textStyle: const TextStyle(color: Colors.white),
+                            colorator: (repo) {
+                              return ReposController.getRepoColorById(repo.nodeId!);
+                            },
+                            onTap: (repo) async{
+                              context.go('/repoConfig/${repo.nodeId!}');
+                            },
+                            items: GanttChartController.selRepos.map<MultiSelectItem<Repository>>((e) {
+                              return MultiSelectItem<Repository>(
+                                e,
+                                e.name!,
+                              );
+                            }).toList(),
+                          ) : const Center(
+                            child: Text(
+                              'Clique aqui para selecionar repositórios...'
+                            ),
                           ),
-                        )).toList()
+                        ),
                       ),
                     ),
                   ],
@@ -164,7 +217,8 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                   'Filtrar por título',
                   'Filtro...',
                   onChanged: (value) async {
-                    GanttChartController.instance.repo!.update();
+                    GanttChartController.instance.listStorageKey = PageStorageKey('list$value');
+                    GanttChartController.reposController.update();
                   },
                 ),
               ],
@@ -179,16 +233,16 @@ class RootStatefulWidgetState extends State<RootStatefulWidget> {
                 builder: (userContext, userSnapshot) {
                   if (userSnapshot.connectionState == ConnectionState.done) {
                     if (userSnapshot.hasData) {
-                      return ChangeNotifierProvider<RepoController?>.value(
-                        value: GanttChartController.instance.repo,
-                        child: Consumer<RepoController?>(
+                      return ChangeNotifierProvider<ReposController?>.value(
+                        value: GanttChartController.reposController,
+                        child: Consumer<ReposController?>(
                           builder: (repoContext, repoValue, child) {
                             Configs.initializeConfigs();
 
                             return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: RepoWidget(
-                                repo: repoValue != null ? repoValue.name : '',
+                                repos: GanttChartController.selRepos.map<String>((e) => e.name!).toList(),
                                 token: _userToken.text,
                               ),
                             );

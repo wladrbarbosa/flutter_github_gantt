@@ -39,20 +39,20 @@ class DependencyLine extends CustomPainter {
       List<Issue> depIssues = allIssue.where((el) => depIssuesNumbers.contains(el.number)).toList();
       for (var el in depIssues) {
         int indexDif = allIssue.indexOf(issue) - allIssue.indexOf(el);
-        double distanceToLeftBorderDep = GanttChartController.instance.calculateDistanceToLeftBorder(el.startTime!) * GanttChartController.instance.chartViewByViewRange;
-        double distanceToLeftBorderIssue = GanttChartController.instance.calculateDistanceToLeftBorder(issue.startTime!) * GanttChartController.instance.chartViewByViewRange;
+        double distanceToLeftBorderDep = GanttChartController.instance.calculateColumnsToLeftBorder(el.startTime!) * GanttChartController.instance.chartColumnsWidth;
+        double distanceToLeftBorderIssue = GanttChartController.instance.calculateColumnsToLeftBorder(issue.startTime!) * GanttChartController.instance.chartColumnsWidth;
         
         if (indexDif > 0) {
           double issueLeft = distanceToLeftBorderIssue + (
               GanttChartController.instance.isPanStartActive ||
               GanttChartController.instance.isPanMiddleActive ?
-                issue.width :
+                issue.deltaWidth :
                 0
             );
           double depIssueLeft = distanceToLeftBorderDep + (
               GanttChartController.instance.isPanStartActive ||
               GanttChartController.instance.isPanMiddleActive ?
-                el.width :
+                el.deltaWidth :
                 0
             ) - 20;
 
@@ -110,9 +110,9 @@ class ChartBarsDependencyLines extends StatelessWidget {
               child: Consumer<Issue>(
                 builder: (issuesContext, issuesValue, child) {
                   if (issuesValue.dependencies.isNotEmpty) {
-                    issuesValue.remainingWidth = GanttChartController.instance.calculateRemainingWidth(issuesValue.startTime!, issuesValue.endTime!);
+                    issuesValue.widthInColumns = GanttChartController.instance.calculateWidthInColumns(issuesValue.startTime!, issuesValue.endTime!);
 
-                    if (issuesValue.remainingWidth! > 0) {
+                    if (issuesValue.widthInColumns! > 0) {
                       return Container(
                         margin: EdgeInsets.only(
                           top: index == 0 ? 4.0 : 2.0,
@@ -131,7 +131,7 @@ class ChartBarsDependencyLines extends StatelessWidget {
                             width: GanttChartController.instance.calculateNumberOfColumnsBetween(
                               GanttChartController.instance.fromDate!,
                               GanttChartController.instance.toDate!
-                            ).length * GanttChartController.instance.chartViewByViewRange,
+                            ).length * GanttChartController.instance.chartColumnsWidth,
                             height: (data.length * 34) - 4,
                           ),
                         ),

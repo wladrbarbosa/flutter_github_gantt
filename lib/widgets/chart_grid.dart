@@ -10,7 +10,7 @@ class ChartGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double width = GanttChartController.instance.chartViewByViewRange;
+    double width = GanttChartController.instance.chartColumnsWidth;
     DateTime now = DateTime.now();
     now = now.subtract(
       Duration(
@@ -22,7 +22,15 @@ class ChartGrid extends StatelessWidget {
       )
     );
 
+    if (!GanttChartController.instance.isTodayJumped) {
+      GanttChartController.instance.isTodayJumped = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        GanttChartController.instance.horizontalController.jumpTo(GanttChartController.instance.calculateColumnsToLeftBorder(DateTime.now().subtract(const Duration(hours: 8))) * GanttChartController.instance.chartColumnsWidth);
+      });
+    }
+
     return ListView.builder(
+      key: const PageStorageKey('chart'),
       cacheExtent: 10,
       controller: GanttChartController.instance.columnsScrollController,
       scrollDirection: Axis.horizontal,
@@ -33,13 +41,13 @@ class ChartGrid extends StatelessWidget {
           width: width,
           decoration: BoxDecoration(
             color: DateFormat('yyyy-MM-dd HH:mm:ss').format(GanttChartController.instance.viewRange![index]) == DateFormat('yyyy-MM-dd HH:mm:ss').format(now) ?
-              Colors.blue.withAlpha(100) :
+              Colors.yellowAccent.withAlpha(100) :
               GanttChartController.instance.viewRange![index].weekday > 5 ?
-                Colors.grey[800] :
+                Colors.lightBlue.withAlpha(50) :
                 null,
             border: Border(
               right: BorderSide(
-                color: Colors.white.withAlpha(100),
+                color: Colors.white.withAlpha(50),
                 width: 1.0
               )
             )

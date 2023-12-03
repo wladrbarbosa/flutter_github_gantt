@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_github_gantt/configs.dart';
 import 'package:flutter_github_gantt/controller/gantt_chart_controller.dart';
+import 'package:flutter_github_gantt/controller/repository.dart';
 import 'package:flutter_github_gantt/model/assignees.dart';
 import 'package:flutter_github_gantt/model/label.dart';
 import 'package:flutter_github_gantt/model/milestone.dart';
@@ -40,11 +41,12 @@ class Issue extends ChangeNotifier {
     this.dragPosFactor = 0,
     this.draggingRemainingWidth,
     this.startPanChartPos = 0,
-    this.remainingWidth,
+    this.widthInColumns,
     this.startTime,
     this.endTime,
     this.dependencies = const [],
     this.value = 0.0,
+    required this.repo,
   });
 
   String? url;
@@ -74,21 +76,22 @@ class Issue extends ChangeNotifier {
 	Reaction? reactions;
 	String? timelineUrl;
 	bool? performedViaGithubApp;
-  double _width = 0;
+  double _deltaWidth = 0;
   bool selected = false;
   bool processing = false;
   double dragPosFactor = 0;
   int? draggingRemainingWidth;
-  int? remainingWidth;
+  int? widthInColumns;
   double startPanChartPos = 0;
   DateTime? startTime = DateTime.now();
   DateTime? endTime = DateTime.now();
   List<int> dependencies = [];
   double value = 0.0;
+  Repository repo = Repository();
 
-  double get width => _width;
-  set width(double value) {
-    _width = value;
+  double get deltaWidth => _deltaWidth;
+  set deltaWidth(double value) {
+    _deltaWidth = value;
     update();
   }
 
@@ -105,7 +108,7 @@ class Issue extends ChangeNotifier {
     processing = !processing;
 
     if (!processing) {
-      GanttChartController.instance.repo!.update();
+      GanttChartController.reposController.update();
     }
 
     if (notify) {
@@ -113,7 +116,7 @@ class Issue extends ChangeNotifier {
     }
   }
 
-  Issue.fromJson(Map<String, dynamic> json, {DateTime? pStartTime, DateTime? pEndTime}) {
+  Issue.fromJson(Map<String, dynamic> json, {DateTime? pStartTime, DateTime? pEndTime, Repository? pRepo}) {
 		url = json['url'];
 		repositoryUrl = json['repository_url'];
 		labelsUrl = json['labels_url'];
@@ -148,6 +151,7 @@ class Issue extends ChangeNotifier {
 		reactions = json['reactions'] != null ? Reaction.fromJson(json['reactions']) : null;
 		timelineUrl = json['timeline_url'];
 		performedViaGithubApp = json['performed_via_github_app'] != null ? true : json['performed_via_github_app'];
+    repo = pRepo ?? Repository.fromJson(json['repo']);
     // Corrige datas baseadas na configuração do gráfico e insere valor da tarefa
     if (pStartTime != null) {
       startTime = pStartTime;
@@ -178,19 +182,6 @@ class Issue extends ChangeNotifier {
       endTime!.day,
       endTime!.hour - (endTime!.hour % Configs.graphColumnsPeriod.inHours)
     );
-
-    remainingWidth = GanttChartController.instance.calculateRemainingWidth(startTime!, endTime!);
-
-    for (int i = 0; i < remainingWidth!; i++) {
-      bool isWeekDayOff = Configs.dayOfWeekOfNoWork.contains(startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).weekday);
-      DateTime currentColumnDate = startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours));
-      bool isSpecificDayOff = Configs.specificDatesOfNoWork.contains(DateTime(currentColumnDate.year, currentColumnDate.month, currentColumnDate.day));
-      bool isHourOff = Configs.hourOfNoWork.map<int>((e) => e['inicio']!).toList().contains(startTime!.add(Duration(hours: i * Configs.graphColumnsPeriod.inHours)).hour);
-
-      if (!isWeekDayOff && !isHourOff && !isSpecificDayOff) {
-        value += Configs.perHourValue * Configs.graphColumnsPeriod.inHours;
-      }
-    }
 	}
 
 	Map<String, dynamic> toJson() {
@@ -234,6 +225,8 @@ class Issue extends ChangeNotifier {
     }
 		data['timeline_url'] = timelineUrl;
 		data['performed_via_github_app'] = performedViaGithubApp;
+    data['repo'] = repo.toJson();
+    
 		return data;
 	}
 }

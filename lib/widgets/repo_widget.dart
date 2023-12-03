@@ -1,17 +1,18 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_github_gantt/view/new_issue_dialog.dart';
+import 'package:go_router/go_router.dart';
 import '../controller/gantt_chart_controller.dart';
 import '../model/issue.dart';
 import '../view/chart_page.dart';
 
 class RepoWidget extends StatefulWidget {
-  final String? repo;
+  final List<String> repos;
   final String token;
 
   const RepoWidget({
     super.key,
-    this.repo,
+    this.repos = const [],
     this.token = ''
   });
 
@@ -31,27 +32,24 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
   Future<void> chartScrollListener() async {
     for (int i = 0; i < GanttChartController.instance.selectedIssues.length; i++) {
       if (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() >= 0.4) {
-        GanttChartController.instance.horizontalController.animateTo(
+        await GanttChartController.instance.horizontalController.animateTo(
           GanttChartController.instance.horizontalController.offset +
             (
               GanttChartController.instance.selectedIssues[i]!.dragPosFactor.sign *
               (GanttChartController.instance.selectedIssues[i]!.dragPosFactor.abs() - 0.4)
             ) /
-            0.001, duration: const Duration(milliseconds: 25), curve: Curves.easeIn
+            0.001, duration: const Duration(milliseconds: 15), curve: Curves.easeIn
         );
       }
     }
 
-    Future.delayed(const Duration(milliseconds: 25), chartScrollListener);
+    Future.delayed(const Duration(milliseconds: 15), chartScrollListener);
   }
 
   @override
   void initState() {
     super.initState();
     GanttChartController.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.issueList = value);
-    GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
-    GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
-    GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     chartScrollListener();
     GanttChartController.instance.horizontalController.addOffsetChangedListener(() {
       GanttChartController.instance.lastHorizontalPos = GanttChartController.instance.horizontalController.offset;
@@ -62,18 +60,9 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
   }
 
   @override
-  void dispose() {
-    GanttChartController.instance.focus.dispose();
-    super.dispose();
-  }
-
-  @override                               
   void didUpdateWidget(RepoWidget oldWidget) {
-    if (widget.repo != oldWidget.repo || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList) {
+    if (!widget.repos.equals(oldWidget.repos) || widget.token != oldWidget.token || GanttChartController.instance.gitHub!.refreshIssuesList) {
       GanttChartController.issueListFuture = GanttChartController.instance.gitHub!.getIssuesList().then((value) => GanttChartController.issueList = value);
-      GanttChartController.instance.assigneesListFuture = GanttChartController.instance.gitHub!.getRepoassigneesListFuture();
-      GanttChartController.instance.labelsListFuture = GanttChartController.instance.gitHub!.getRepolabelsListFuture();
-      GanttChartController.instance.milestoneListFuture = GanttChartController.instance.gitHub!.getRepoMilestonesList();
     }
 
     super.didUpdateWidget(oldWidget);
@@ -84,7 +73,7 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
     return FutureBuilder<List<Issue>>(
       future: GanttChartController.issueListFuture,
       builder: (issuesContext, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.connectionState == ConnectionState.done || GanttChartController.issueList != null) {
           if (snapshot.hasData && snapshot.data!.isNotEmpty) {
             GanttChartController.instance.rememberScrollPositions();
 
@@ -103,24 +92,7 @@ class RepoWidgetState extends State<RepoWidget> with TickerProviderStateMixin {
                 ),
                 TextButton(
                   onPressed: () {
-                    Future.wait<dynamic>(
-                      [
-                        GanttChartController.instance.assigneesListFuture!,
-                        GanttChartController.instance.labelsListFuture!,
-                        GanttChartController.instance.milestoneListFuture!
-                      ]
-                    ).then((value) async {
-                      await showDialog(
-                        context: issuesContext,
-                        builder: (newIssueDialogContext) {
-                          return NewIssueDialog(
-                            assignees: value[0],
-                            labels: value[1],
-                            milestones: value[2],
-                          );
-                        }
-                      );
-                    });
+                    context.go('/newIssue');
                   },
                   child: const Text(
                     'Criar a primeira agora'
